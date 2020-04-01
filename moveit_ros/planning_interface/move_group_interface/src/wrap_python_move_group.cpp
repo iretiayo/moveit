@@ -490,6 +490,13 @@ public:
     setPathConstraints(constraints_msg);
   }
 
+  void setTrajectoryConstraintsFromMsg(const py_bindings_tools::ByteString& constraints_str)
+  {
+    moveit_msgs::TrajectoryConstraints constraints_msg;
+    py_bindings_tools::deserializeMsg(constraints_str, constraints_msg);
+    setTrajectoryConstraints(constraints_msg);
+  }
+
   void setReferenceTrajectoriesFromMsg(const bp::list& reference_trajectories_str)
   {
     int l = bp::len(reference_trajectories_str);
@@ -692,6 +699,9 @@ static void wrap_move_group_interface()
   move_group_interface_class.def("set_path_constraints", set_path_constraints_1);
   move_group_interface_class.def("set_path_constraints_from_msg",
                                  &MoveGroupInterfaceWrapper::setPathConstraintsFromMsg);
+  move_group_interface_class.def("set_trajectory_constraints_from_msg",
+                                 &MoveGroupInterfaceWrapper::setTrajectoryConstraintsFromMsg);
+  move_group_interface_class.def("clear_trajectory_constraints", &MoveGroupInterfaceWrapper::clearTrajectoryConstraints);
   move_group_interface_class.def("get_path_constraints", &MoveGroupInterfaceWrapper::getPathConstraintsPython);
   move_group_interface_class.def("clear_path_constraints", &MoveGroupInterfaceWrapper::clearPathConstraints);
   move_group_interface_class.def("get_known_constraints", &MoveGroupInterfaceWrapper::getKnownConstraintsList);
