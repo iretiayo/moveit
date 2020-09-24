@@ -39,11 +39,9 @@
 #include <moveit/collision_detection/world.h>
 #include <moveit/macros/class_forward.h>
 
-#include <memory>
-
 namespace collision_detection
 {
-MOVEIT_CLASS_FORWARD(WorldDiff);
+MOVEIT_CLASS_FORWARD(WorldDiff);  // Defines WorldDiffPtr, ConstPtr, WeakPtr... etc
 
 /** \brief Maintain a diff list of changes that have happened to a World. */
 class WorldDiff
@@ -113,7 +111,7 @@ public:
 
 private:
   /** \brief Notification function */
-  void notify(const World::ObjectConstPtr&, World::Action);
+  void notify(const World::ObjectConstPtr& /*obj*/, World::Action /*action*/);
 
   /** keep changes in a map so they can be coalesced */
   std::map<std::string, World::Action> changes_;
@@ -124,4 +122,4 @@ private:
   /* used to unregister the notifier */
   WorldWeakPtr world_;
 };
-}
+}  // namespace collision_detection

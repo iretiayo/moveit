@@ -1,43 +1,44 @@
 /*********************************************************************
-* Software License Agreement (BSD License)
-*
-*  Copyright (c) 2013, Ioan A. Sucan
-*  Copyright (c) 2013, Willow Garage, Inc.
-*  All rights reserved.
-*
-*  Redistribution and use in source and binary forms, with or without
-*  modification, are permitted provided that the following conditions
-*  are met:
-*
-*   * Redistributions of source code must retain the above copyright
-*     notice, this list of conditions and the following disclaimer.
-*   * Redistributions in binary form must reproduce the above
-*     copyright notice, this list of conditions and the following
-*     disclaimer in the documentation and/or other materials provided
-*     with the distribution.
-*   * Neither the name of the Willow Garage nor the names of its
-*     contributors may be used to endorse or promote products derived
-*     from this software without specific prior written permission.
-*
-*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-*  POSSIBILITY OF SUCH DAMAGE.
-*********************************************************************/
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2013, Ioan A. Sucan
+ *  Copyright (c) 2013, Willow Garage, Inc.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the Willow Garage nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
 
 /* Author: Ioan Sucan, Sachin Chitta, Acorn Pooley, Mario Prats, Dave Coleman */
 
 #include <moveit/robot_state/robot_state.h>
 #include <moveit/robot_state/cartesian_interpolator.h>
 #include <moveit/transforms/transforms.h>
+#include <geometric_shapes/check_isometry.h>
 #include <geometric_shapes/shape_operations.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <moveit/backtrace/backtrace.h>
@@ -82,8 +83,7 @@ RobotState::~RobotState()
 
 void RobotState::allocMemory()
 {
-  static_assert((sizeof(Eigen::Isometry3d) / EIGEN_MAX_ALIGN_BYTES) * EIGEN_MAX_ALIGN_BYTES ==
-                    sizeof(Eigen::Isometry3d),
+  static_assert((sizeof(Eigen::Isometry3d) / EIGEN_MAX_ALIGN_BYTES) * EIGEN_MAX_ALIGN_BYTES == sizeof(Eigen::Isometry3d),
                 "sizeof(Eigen::Isometry3d) should be a multiple of EIGEN_MAX_ALIGN_BYTES");
 
   constexpr unsigned int extra_alignment_bytes = EIGEN_MAX_ALIGN_BYTES - 1;
@@ -162,7 +162,7 @@ void RobotState::copyFrom(const RobotState& other)
             (robot_model_->getVariableCount() * (1 + ((has_velocity_ || has_acceleration_ || has_effort_) ? 1 : 0) +
                                                  ((has_acceleration_ || has_effort_) ? 1 : 0)) +
              nr_doubles_for_dirty_joint_transforms);
-    memcpy(variable_joint_transforms_, other.variable_joint_transforms_, bytes);
+    memcpy((void*)variable_joint_transforms_, (void*)other.variable_joint_transforms_, bytes);
   }
 
   // copy attached bodies
@@ -230,6 +230,46 @@ void RobotState::markEffort()
     has_effort_ = true;
     memset(effort_, 0, sizeof(double) * robot_model_->getVariableCount());
   }
+}
+
+void RobotState::zeroVelocities()
+{
+  has_velocity_ = false;
+  markVelocity();
+}
+
+void RobotState::zeroAccelerations()
+{
+  has_acceleration_ = false;
+  markAcceleration();
+}
+
+void RobotState::zeroEffort()
+{
+  has_effort_ = false;
+  markEffort();
+}
+
+void RobotState::dropVelocities()
+{
+  has_velocity_ = false;
+}
+
+void RobotState::dropAccelerations()
+{
+  has_velocity_ = false;
+}
+
+void RobotState::dropEffort()
+{
+  has_velocity_ = false;
+}
+
+void RobotState::dropDynamics()
+{
+  dropVelocities();
+  dropAccelerations();
+  dropEffort();
 }
 
 void RobotState::setToRandomPositions()
@@ -844,8 +884,7 @@ void RobotState::interpolate(const RobotState& to, double t, RobotState& state) 
   state.dirty_link_transforms_ = state.robot_model_->getRootJoint();
 }
 
-void RobotState::interpolate(const RobotState& to, double t, RobotState& state,
-                             const JointModelGroup* joint_group) const
+void RobotState::interpolate(const RobotState& to, double t, RobotState& state, const JointModelGroup* joint_group) const
 {
   const std::vector<const JointModel*>& jm = joint_group->getActiveJointModels();
   for (const JointModel* joint : jm)
@@ -906,8 +945,7 @@ void RobotState::getAttachedBodies(std::vector<const AttachedBody*>& attached_bo
     attached_bodies.push_back(it.second);
 }
 
-void RobotState::getAttachedBodies(std::vector<const AttachedBody*>& attached_bodies,
-                                   const JointModelGroup* group) const
+void RobotState::getAttachedBodies(std::vector<const AttachedBody*>& attached_bodies, const JointModelGroup* group) const
 {
   attached_bodies.clear();
   for (const std::pair<const std::string, AttachedBody*>& it : attached_body_map_)
@@ -1040,8 +1078,9 @@ const Eigen::Isometry3d& RobotState::getFrameInfo(const std::string& frame_id, c
       return IDENTITY_TRANSFORM;
     }
     if (tf.size() > 1)
-      ROS_DEBUG_NAMED(LOGNAME, "There are multiple geometries associated to attached body '%s'. "
-                               "Returning the transform for the first one.",
+      ROS_DEBUG_NAMED(LOGNAME,
+                      "There are multiple geometries associated to attached body '%s'. "
+                      "Returning the transform for the first one.",
                       frame_id.c_str());
     robot_link = jt->second->getAttachedLink();
     frame_found = true;
@@ -1050,7 +1089,7 @@ const Eigen::Isometry3d& RobotState::getFrameInfo(const std::string& frame_id, c
   }
 
   // Check if an AttachedBody has a subframe with name frame_id
-  for (const std::pair<std::string, AttachedBody*>& body : attached_body_map_)
+  for (const std::pair<const std::string, AttachedBody*>& body : attached_body_map_)
   {
     const auto& transform = body.second->getGlobalSubframeTransform(frame_id, &frame_found);
     if (frame_found)
@@ -1079,7 +1118,7 @@ bool RobotState::knowsFrameTransform(const std::string& frame_id) const
     return !it->second->getGlobalCollisionBodyTransforms().empty();
 
   // Check if an AttachedBody has a subframe with name frame_id
-  for (const std::pair<std::string, AttachedBody*>& body : attached_body_map_)
+  for (const std::pair<const std::string, AttachedBody*>& body : attached_body_map_)
   {
     if (body.second->hasSubframeTransform(frame_id))
       return true;
@@ -1202,13 +1241,15 @@ bool RobotState::getJacobian(const JointModelGroup* group, const LinkModel* link
 
   const moveit::core::JointModel* root_joint_model = group->getJointModels()[0];  // group->getJointRoots()[0];
   const moveit::core::LinkModel* root_link_model = root_joint_model->getParentLinkModel();
+  // getGlobalLinkTransform() returns a valid isometry by contract
   Eigen::Isometry3d reference_transform =
       root_link_model ? getGlobalLinkTransform(root_link_model).inverse() : Eigen::Isometry3d::Identity();
   int rows = use_quaternion_representation ? 7 : 6;
   int columns = group->getVariableCount();
   jacobian = Eigen::MatrixXd::Zero(rows, columns);
 
-  Eigen::Isometry3d link_transform = reference_transform * getGlobalLinkTransform(link);
+  // getGlobalLinkTransform() returns a valid isometry by contract
+  Eigen::Isometry3d link_transform = reference_transform * getGlobalLinkTransform(link);  // valid isometry
   Eigen::Vector3d point_transform = link_transform * reference_point_position;
 
   /*
@@ -1239,23 +1280,22 @@ bool RobotState::getJacobian(const JointModelGroup* group, const LinkModel* link
         continue;
       }
       unsigned int joint_index = group->getVariableGroupIndex(pjm->getName());
+      // getGlobalLinkTransform() returns a valid isometry by contract
+      joint_transform = reference_transform * getGlobalLinkTransform(link);  // valid isometry
       if (pjm->getType() == moveit::core::JointModel::REVOLUTE)
       {
-        joint_transform = reference_transform * getGlobalLinkTransform(link);
-        joint_axis = joint_transform.rotation() * static_cast<const moveit::core::RevoluteJointModel*>(pjm)->getAxis();
+        joint_axis = joint_transform.linear() * static_cast<const moveit::core::RevoluteJointModel*>(pjm)->getAxis();
         jacobian.block<3, 1>(0, joint_index) =
             jacobian.block<3, 1>(0, joint_index) + joint_axis.cross(point_transform - joint_transform.translation());
         jacobian.block<3, 1>(3, joint_index) = jacobian.block<3, 1>(3, joint_index) + joint_axis;
       }
       else if (pjm->getType() == moveit::core::JointModel::PRISMATIC)
       {
-        joint_transform = reference_transform * getGlobalLinkTransform(link);
-        joint_axis = joint_transform.rotation() * static_cast<const moveit::core::PrismaticJointModel*>(pjm)->getAxis();
+        joint_axis = joint_transform.linear() * static_cast<const moveit::core::PrismaticJointModel*>(pjm)->getAxis();
         jacobian.block<3, 1>(0, joint_index) = jacobian.block<3, 1>(0, joint_index) + joint_axis;
       }
       else if (pjm->getType() == moveit::core::JointModel::PLANAR)
       {
-        joint_transform = reference_transform * getGlobalLinkTransform(link);
         joint_axis = joint_transform * Eigen::Vector3d(1.0, 0.0, 0.0);
         jacobian.block<3, 1>(0, joint_index) = jacobian.block<3, 1>(0, joint_index) + joint_axis;
         joint_axis = joint_transform * Eigen::Vector3d(0.0, 1.0, 0.0);
@@ -1279,7 +1319,7 @@ bool RobotState::getJacobian(const JointModelGroup* group, const LinkModel* link
     //        [x]           [  w -z  y ]    [ omega_2 ]
     //        [y]           [  z  w -x ]    [ omega_3 ]
     //        [z]           [ -y  x  w ]
-    Eigen::Quaterniond q(link_transform.rotation());
+    Eigen::Quaterniond q(link_transform.linear());
     double w = q.w(), x = q.x(), y = q.y(), z = q.z();
     Eigen::MatrixXd quaternion_update_matrix(4, 3);
     quaternion_update_matrix << -x, -y, -z, w, -z, y, z, w, -x, -y, x, w;
@@ -1529,8 +1569,9 @@ bool RobotState::setFromIK(const JointModelGroup* jmg, const EigenSTL::vector_Is
   std::vector<double> consistency_limits;
   if (consistency_limit_sets.size() > 1)
   {
-    ROS_ERROR_NAMED(LOGNAME, "Invalid number (%zu) of sets of consistency limits for a setFromIK request "
-                             "that is being solved by a single IK solver",
+    ROS_ERROR_NAMED(LOGNAME,
+                    "Invalid number (%zu) of sets of consistency limits for a setFromIK request "
+                    "that is being solved by a single IK solver",
                     consistency_limit_sets.size());
     return false;
   }
@@ -1775,6 +1816,7 @@ bool RobotState::setFromIKSubgroups(const JointModelGroup* jmg, const EigenSTL::
   // Each each pose's tip frame naming
   for (std::size_t i = 0; i < poses_in.size(); ++i)
   {
+    ASSERT_ISOMETRY(transformed_poses[i])  // unsanitized input, could contain a non-isometry
     Eigen::Isometry3d& pose = transformed_poses[i];
     std::string& pose_frame = pose_frames[i];
 
@@ -1795,26 +1837,27 @@ bool RobotState::setFromIKSubgroups(const JointModelGroup* jmg, const EigenSTL::
       if (hasAttachedBody(pose_frame))
       {
         const AttachedBody* body = getAttachedBody(pose_frame);
-        const EigenSTL::vector_Isometry3d& ab_trans = body->getFixedTransforms();
+        const EigenSTL::vector_Isometry3d& ab_trans = body->getFixedTransforms();  // valid isometries by contract
         if (ab_trans.size() != 1)
         {
           ROS_ERROR_NAMED(LOGNAME, "Cannot use an attached body with multiple geometries as a reference frame.");
           return false;
         }
         pose_frame = body->getAttachedLinkName();
-        pose = pose * ab_trans[0].inverse();
+        pose = pose * ab_trans[0].inverse();  // valid isometry
       }
       if (pose_frame != solver_tip_frame)
       {
         const moveit::core::LinkModel* link_model = getLinkModel(pose_frame);
         if (!link_model)
           return false;
+        // getAssociatedFixedTransforms() returns valid isometries by contract
         const moveit::core::LinkTransformMap& fixed_links = link_model->getAssociatedFixedTransforms();
         for (const std::pair<const LinkModel* const, Eigen::Isometry3d>& fixed_link : fixed_links)
           if (fixed_link.first->getName() == solver_tip_frame)
           {
             pose_frame = solver_tip_frame;
-            pose = pose * fixed_link.second;
+            pose = pose * fixed_link.second;  // valid isometry
             break;
           }
       }
@@ -1836,7 +1879,7 @@ bool RobotState::setFromIKSubgroups(const JointModelGroup* jmg, const EigenSTL::
 
   for (std::size_t i = 0; i < transformed_poses.size(); ++i)
   {
-    Eigen::Quaterniond quat(transformed_poses[i].rotation());
+    Eigen::Quaterniond quat(transformed_poses[i].linear());
     Eigen::Vector3d point(transformed_poses[i].translation());
     ik_queries[i].position.x = point.x();
     ik_queries[i].position.y = point.y();
@@ -2101,7 +2144,8 @@ void RobotState::printStateInfo(std::ostream& out) const
 
 void RobotState::printTransform(const Eigen::Isometry3d& transform, std::ostream& out) const
 {
-  Eigen::Quaterniond q(transform.rotation());
+  ASSERT_ISOMETRY(transform)  // unsanitized input, could contain a non-isometry
+  Eigen::Quaterniond q(transform.linear());
   out << "T.xyz = [" << transform.translation().x() << ", " << transform.translation().y() << ", "
       << transform.translation().z() << "], Q.xyzw = [" << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w()
       << "]" << std::endl;

@@ -39,7 +39,6 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <geometric_shapes/bodies.h>
 #include <boost/function.hpp>
-#include <string>
 #include <vector>
 #include <set>
 #include <map>
@@ -95,7 +94,7 @@ protected:
   {
     SeeShape()
     {
-      body = NULL;
+      body = nullptr;
     }
 
     bodies::Body* body;
@@ -130,4 +129,4 @@ private:
   ShapeHandle min_handle_;
   std::map<ShapeHandle, std::set<SeeShape, SortBodies>::iterator> used_handles_;
 };
-}
+}  // namespace point_containment_filter

@@ -44,7 +44,7 @@
 /** \brief Generic interface to adapting motion planning requests */
 namespace planning_request_adapter
 {
-MOVEIT_CLASS_FORWARD(PlanningRequestAdapter);
+MOVEIT_CLASS_FORWARD(PlanningRequestAdapter);  // Defines PlanningRequestAdapterPtr, ConstPtr, WeakPtr... etc
 
 class PlanningRequestAdapter
 {
@@ -119,4 +119,4 @@ public:
 private:
   std::vector<PlanningRequestAdapterConstPtr> adapters_;
 };
-}
+}  // namespace planning_request_adapter

@@ -52,7 +52,7 @@ enum MoveGroupState
   LOOK
 };
 
-MOVEIT_CLASS_FORWARD(MoveGroupCapability);
+MOVEIT_CLASS_FORWARD(MoveGroupCapability);  // Defines MoveGroupCapabilityPtr, ConstPtr, WeakPtr... etc
 
 class MoveGroupCapability
 {
@@ -97,4 +97,4 @@ protected:
   std::string capability_name_;
   MoveGroupContextPtr context_;
 };
-}
+}  // namespace move_group

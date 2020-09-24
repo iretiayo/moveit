@@ -38,7 +38,6 @@
 
 #include <visualization_msgs/InteractiveMarkerFeedback.h>
 #include <visualization_msgs/InteractiveMarker.h>
-#include <geometry_msgs/PoseArray.h>
 #include <interactive_markers/menu_handler.h>
 #include <moveit/macros/class_forward.h>
 #include <moveit/robot_state/robot_state.h>
@@ -58,9 +57,9 @@ class InteractiveMarkerServer;
 
 namespace robot_interaction
 {
-MOVEIT_CLASS_FORWARD(InteractionHandler);
-MOVEIT_CLASS_FORWARD(KinematicOptionsMap);
-MOVEIT_CLASS_FORWARD(RobotInteraction);
+MOVEIT_CLASS_FORWARD(InteractionHandler);   // Defines InteractionHandlerPtr, ConstPtr, WeakPtr... etc
+MOVEIT_CLASS_FORWARD(KinematicOptionsMap);  // Defines KinematicOptionsMapPtr, ConstPtr, WeakPtr... etc
+MOVEIT_CLASS_FORWARD(RobotInteraction);     // Defines RobotInteractionPtr, ConstPtr, WeakPtr... etc
 
 // Manage interactive markers for controlling a robot state.
 //
@@ -79,7 +78,7 @@ public:
   RobotInteraction(const moveit::core::RobotModelConstPtr& robot_model, const std::string& ns = "");
   virtual ~RobotInteraction();
 
-  const std::string& getServerTopic(void) const
+  const std::string& getServerTopic() const
   {
     return topic_;
   }
@@ -232,4 +231,4 @@ private:
   // options for doing IK
   KinematicOptionsMapPtr kinematic_options_map_;
 };
-}
+}  // namespace robot_interaction

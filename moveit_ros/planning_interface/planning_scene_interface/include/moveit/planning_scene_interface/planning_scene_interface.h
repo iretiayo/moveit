@@ -47,7 +47,7 @@ namespace moveit
 {
 namespace planning_interface
 {
-MOVEIT_CLASS_FORWARD(PlanningSceneInterface);
+MOVEIT_CLASS_FORWARD(PlanningSceneInterface);  // Defines PlanningSceneInterfacePtr, ConstPtr, WeakPtr... etc
 
 class PlanningSceneInterface
 {
@@ -148,5 +148,5 @@ private:
   class PlanningSceneInterfaceImpl;
   PlanningSceneInterfaceImpl* impl_;
 };
-}
-}
+}  // namespace planning_interface
+}  // namespace moveit

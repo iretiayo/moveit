@@ -50,7 +50,7 @@
  */
 namespace constraint_samplers
 {
-MOVEIT_CLASS_FORWARD(ConstraintSampler);
+MOVEIT_CLASS_FORWARD(ConstraintSampler);  // Defines ConstraintSamplerPtr, ConstPtr, WeakPtr... etc
 
 /**
  * \brief ConstraintSampler is an abstract base class that allows the
@@ -294,4 +294,4 @@ protected:
   moveit::core::GroupStateValidityCallbackFn group_state_validity_callback_;
   bool verbose_;  ///< True if verbosity is on
 };
-}
+}  // namespace constraint_samplers

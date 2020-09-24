@@ -72,8 +72,8 @@ class DefaultCollisionsWidget : public SetupScreenWidget
 public:
   enum ViewMode
   {
-    MatrixMode = 0,
-    LinearMode = 1
+    MATRIX_MODE = 0,
+    LINEAR_MODE = 1
   };
 
   // ******************************************************************************************
@@ -139,8 +139,8 @@ private Q_SLOTS:
   void revertChanges();
 
   /**
-  * \brief Called when current row has changed
-  */
+   * \brief Called when current row has changed
+   */
   void previewSelectedMatrix(const QModelIndex& index);
   void previewSelectedLinear(const QModelIndex& index);
 
@@ -236,7 +236,7 @@ class MonitorThread : public QThread
   Q_OBJECT
 
 public:
-  MonitorThread(const boost::function<void(unsigned int*)>& f, QProgressBar* progress_bar = NULL);
+  MonitorThread(const boost::function<void(unsigned int*)>& f, QProgressBar* progress_bar = nullptr);
   void run() override;
   void cancel()
   {
@@ -255,4 +255,4 @@ private:
   unsigned int progress_;
   bool canceled_;
 };
-}
+}  // namespace moveit_setup_assistant

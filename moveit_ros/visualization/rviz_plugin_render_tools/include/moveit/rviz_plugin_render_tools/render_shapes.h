@@ -41,7 +41,6 @@
 #include <geometric_shapes/shapes.h>
 #include <rviz/helpers/color.h>
 #include <Eigen/Geometry>
-#include <string>
 #include <memory>
 
 namespace Ogre
@@ -53,12 +52,12 @@ namespace rviz
 {
 class DisplayContext;
 class Shape;
-}
+}  // namespace rviz
 
 namespace moveit_rviz_plugin
 {
-MOVEIT_CLASS_FORWARD(OcTreeRender);
-MOVEIT_CLASS_FORWARD(RenderShapes);
+MOVEIT_CLASS_FORWARD(OcTreeRender);  // Defines OcTreeRenderPtr, ConstPtr, WeakPtr... etc
+MOVEIT_CLASS_FORWARD(RenderShapes);  // Defines RenderShapesPtr, ConstPtr, WeakPtr... etc
 
 class RenderShapes
 {
@@ -78,4 +77,4 @@ private:
   std::vector<std::unique_ptr<rviz::Shape> > scene_shapes_;
   std::vector<OcTreeRenderPtr> octree_voxel_grids_;
 };
-}
+}  // namespace moveit_rviz_plugin

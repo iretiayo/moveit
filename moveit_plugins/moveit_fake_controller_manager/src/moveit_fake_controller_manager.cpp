@@ -42,7 +42,6 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <ros/console.h>
 #include <map>
-#include <iterator>
 
 namespace moveit_fake_controller_manager
 {
@@ -96,8 +95,8 @@ public:
 
         if (controller_list[i]["joints"].getType() != XmlRpc::XmlRpcValue::TypeArray)
         {
-          ROS_ERROR_STREAM_NAMED("MoveItFakeControllerManager", "The list of joints for controller "
-                                                                    << name << " is not specified as an array");
+          ROS_ERROR_STREAM_NAMED("MoveItFakeControllerManager",
+                                 "The list of joints for controller " << name << " is not specified as an array");
           continue;
         }
         std::vector<std::string> joints;
@@ -195,10 +194,10 @@ public:
     }
 
     // fill the joint state
-    for (JointPoseMap::const_iterator it = joints.begin(), end = joints.end(); it != end; ++it)
+    for (const auto& name_pos_pair : joints)
     {
-      js.name.push_back(it->first);
-      js.position.push_back(it->second);
+      js.name.push_back(name_pos_pair.first);
+      js.position.push_back(name_pos_pair.second);
     }
     return js;
   }

@@ -416,11 +416,12 @@ void PlanningGroupsWidget::loadGroupsTreeRecursive(srdf::Model::Group& group_it,
     // Check if subgroup was found
     if (searched_group == nullptr)  // not found
     {
-      QMessageBox::critical(this, "Error Loading SRDF", QString("Subgroup '")
-                                                            .append(subgroup_it->c_str())
-                                                            .append("' of group '")
-                                                            .append(group_it.name_.c_str())
-                                                            .append("' not found. Your SRDF is invalid"));
+      QMessageBox::critical(this, "Error Loading SRDF",
+                            QString("Subgroup '")
+                                .append(subgroup_it->c_str())
+                                .append("' of group '")
+                                .append(group_it.name_.c_str())
+                                .append("' not found. Your SRDF is invalid"));
       return;  // TODO: something better for error handling?
     }
 
@@ -589,10 +590,11 @@ void PlanningGroupsWidget::loadChainScreen(srdf::Model::Group* this_group)
   // Make sure there isn't more than 1 chain pair
   if (this_group->chains_.size() > 1)
   {
-    QMessageBox::warning(this, "Multiple Kinematic Chains", "Warning: This setup assistant is only designed to handle "
-                                                            "one kinematic chain per group. The loaded SRDF has more "
-                                                            "than one kinematic chain for a group. A possible loss of "
-                                                            "data may occur.");
+    QMessageBox::warning(this, "Multiple Kinematic Chains",
+                         "Warning: This setup assistant is only designed to handle "
+                         "one kinematic chain per group. The loaded SRDF has more "
+                         "than one kinematic chain for a group. A possible loss of "
+                         "data may occur.");
   }
 
   // Set the selected tip and base of chain if one exists
@@ -702,12 +704,12 @@ void PlanningGroupsWidget::deleteGroup()
   srdf::Model::Group* searched_group = config_data_->findGroupByName(group);
 
   // Confirm user wants to delete group
-  if (QMessageBox::question(
-          this, "Confirm Group Deletion",
-          QString("Are you sure you want to delete the planning group '")
-              .append(searched_group->name_.c_str())
-              .append("'? This will also delete all references in subgroups, robot poses and end effectors."),
-          QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Cancel)
+  if (QMessageBox::question(this, "Confirm Group Deletion",
+                            QString("Are you sure you want to delete the planning group '")
+                                .append(searched_group->name_.c_str())
+                                .append("'? This will also delete all references in subgroups, robot poses and end "
+                                        "effectors."),
+                            QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Cancel)
   {
     return;
   }
@@ -918,8 +920,9 @@ void PlanningGroupsWidget::saveChainScreen()
   // Check that box the tip and base, or neither, have text
   if ((!tip.empty() && base.empty()) || (tip.empty() && !base.empty()))
   {
-    QMessageBox::warning(this, "Error Saving", "You must specify a link for both the base and tip, or leave both "
-                                               "blank.");
+    QMessageBox::warning(this, "Error Saving",
+                         "You must specify a link for both the base and tip, or leave both "
+                         "blank.");
     return;
   }
 
@@ -1084,6 +1087,8 @@ bool PlanningGroupsWidget::saveGroupScreen()
   const std::string& default_planner = group_edit_widget_->default_planner_field_->currentText().toStdString();
   const std::string& kinematics_resolution = group_edit_widget_->kinematics_resolution_field_->text().toStdString();
   const std::string& kinematics_timeout = group_edit_widget_->kinematics_timeout_field_->text().toStdString();
+  const std::string& kinematics_parameters_file =
+      group_edit_widget_->kinematics_parameters_file_field_->text().toStdString();
 
   // Used for editing existing groups
   srdf::Model::Group* searched_group = nullptr;
@@ -1103,13 +1108,12 @@ bool PlanningGroupsWidget::saveGroupScreen()
   }
 
   // Check that the group name is unique
-  for (std::vector<srdf::Model::Group>::const_iterator group_it = config_data_->srdf_->groups_.begin();
-       group_it != config_data_->srdf_->groups_.end(); ++group_it)
+  for (const auto& group : config_data_->srdf_->groups_)
   {
-    if (group_it->name_.compare(group_name) == 0)  // the names are the same
+    if (group.name_.compare(group_name) == 0)  // the names are the same
     {
       // is this our existing group? check if group pointers are same
-      if (&(*group_it) != searched_group)
+      if (&group != searched_group)
       {
         QMessageBox::warning(this, "Error Saving", "A group already exists with that name!");
         return false;
@@ -1196,8 +1200,8 @@ bool PlanningGroupsWidget::saveGroupScreen()
       // Check if this eef's parent group references old group name. if so, update it
       if (eef_it->parent_group_.compare(old_group_name) == 0)  // same name
       {
-        ROS_DEBUG_STREAM_NAMED("setup_assistant", "Changed eef '" << eef_it->name_ << "' to new parent group name "
-                                                                  << group_name);
+        ROS_DEBUG_STREAM_NAMED("setup_assistant",
+                               "Changed eef '" << eef_it->name_ << "' to new parent group name " << group_name);
         eef_it->parent_group_ = group_name;  // updated
         config_data_->changes |= MoveItConfigData::END_EFFECTORS;
       }
@@ -1205,8 +1209,8 @@ bool PlanningGroupsWidget::saveGroupScreen()
       // Check if this eef's group references old group name. if so, update it
       if (eef_it->component_group_.compare(old_group_name) == 0)  // same name
       {
-        ROS_DEBUG_STREAM_NAMED("setup_assistant", "Changed eef '" << eef_it->name_ << "' to new group name "
-                                                                  << group_name);
+        ROS_DEBUG_STREAM_NAMED("setup_assistant",
+                               "Changed eef '" << eef_it->name_ << "' to new group name " << group_name);
         eef_it->component_group_ = group_name;  // updated
         config_data_->changes |= MoveItConfigData::END_EFFECTORS;
       }
@@ -1235,7 +1239,8 @@ bool PlanningGroupsWidget::saveGroupScreen()
   config_data_->group_meta_data_[group_name].kinematics_solver_ = kinematics_solver;
   config_data_->group_meta_data_[group_name].kinematics_solver_search_resolution_ = kinematics_resolution_double;
   config_data_->group_meta_data_[group_name].kinematics_solver_timeout_ = kinematics_timeout_double;
-  config_data_->group_meta_data_[group_name].default_planner_ = default_planner;
+  config_data_->group_meta_data_[group_name].kinematics_parameters_file_ = kinematics_parameters_file;
+  config_data_->group_meta_data_[group_name].default_planner_ = (default_planner == "None" ? "" : default_planner);
   config_data_->changes |= MoveItConfigData::GROUP_KINEMATICS;
 
   // Reload main screen table
@@ -1401,12 +1406,12 @@ void PlanningGroupsWidget::changeScreen(int index)
 // ******************************************************************************************
 // Called from Double List widget to highlight a link
 // ******************************************************************************************
-void PlanningGroupsWidget::previewSelectedLink(std::vector<std::string> links)
+void PlanningGroupsWidget::previewSelectedLink(const std::vector<std::string>& links)
 {
   // Unhighlight all links
   Q_EMIT unhighlightAll();
 
-  for (std::string& link : links)
+  for (const std::string& link : links)
   {
     if (link.empty())
     {
@@ -1421,7 +1426,7 @@ void PlanningGroupsWidget::previewSelectedLink(std::vector<std::string> links)
 // ******************************************************************************************
 // Called from Double List widget to highlight joints
 // ******************************************************************************************
-void PlanningGroupsWidget::previewSelectedJoints(std::vector<std::string> joints)
+void PlanningGroupsWidget::previewSelectedJoints(const std::vector<std::string>& joints)
 {
   // Unhighlight all links
   Q_EMIT unhighlightAll();
@@ -1452,7 +1457,7 @@ void PlanningGroupsWidget::previewSelectedJoints(std::vector<std::string> joints
 // ******************************************************************************************
 // Called from Double List widget to highlight a subgroup
 // ******************************************************************************************
-void PlanningGroupsWidget::previewSelectedSubgroup(std::vector<std::string> groups)
+void PlanningGroupsWidget::previewSelectedSubgroup(const std::vector<std::string>& groups)
 {
   // Unhighlight all links
   Q_EMIT unhighlightAll();

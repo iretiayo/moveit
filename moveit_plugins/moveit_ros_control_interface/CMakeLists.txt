@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.1.3)
 project(moveit_ros_control_interface)
 
-set(CMAKE_CXX_STANDARD 14)
+if(NOT "${CMAKE_CXX_STANDARD}")
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -29,12 +31,8 @@ catkin_package(
   DEPENDS Boost
 )
 
-# support indigo's ros_control - This can be removed upon EOL indigo
-if("${controller_manager_msgs_VERSION}" VERSION_LESS "0.10.0")
-  add_definitions(-DMOVEIT_ROS_CONTROL_INTERFACE_OLD_ROS_CONTROL)
-endif()
-
-include_directories(include ${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+include_directories(include)
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 add_library(${PROJECT_NAME}_plugin
   src/controller_manager_plugin.cpp

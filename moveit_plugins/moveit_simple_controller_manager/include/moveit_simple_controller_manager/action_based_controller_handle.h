@@ -61,7 +61,8 @@ public:
   }
 };
 
-MOVEIT_CLASS_FORWARD(ActionBasedControllerHandleBase);
+MOVEIT_CLASS_FORWARD(
+    ActionBasedControllerHandleBase);  // Defines ActionBasedControllerHandleBasePtr, ConstPtr, WeakPtr... etc
 
 /*
  * This is a simple base class, which handles all of the action creation/etc
@@ -152,7 +153,7 @@ public:
 
 protected:
   ros::NodeHandle nh_;
-  std::string getActionName(void) const
+  std::string getActionName() const
   {
     if (namespace_.empty())
       return name_;

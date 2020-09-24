@@ -36,6 +36,7 @@
 
 #pragma once
 
+#include <geometry_msgs/PoseStamped.h>
 #include <moveit/macros/class_forward.h>
 #include <moveit/robot_interaction/locked_robot_state.h>
 //#include <moveit/robot_interaction/robot_interaction.h>
@@ -45,9 +46,9 @@
 
 namespace robot_interaction
 {
-MOVEIT_CLASS_FORWARD(InteractionHandler);
-MOVEIT_CLASS_FORWARD(RobotInteraction);
-MOVEIT_CLASS_FORWARD(KinematicOptionsMap);
+MOVEIT_CLASS_FORWARD(InteractionHandler);   // Defines InteractionHandlerPtr, ConstPtr, WeakPtr... etc
+MOVEIT_CLASS_FORWARD(RobotInteraction);     // Defines RobotInteractionPtr, ConstPtr, WeakPtr... etc
+MOVEIT_CLASS_FORWARD(KinematicOptionsMap);  // Defines KinematicOptionsMapPtr, ConstPtr, WeakPtr... etc
 
 struct EndEffectorInteraction;
 struct JointInteraction;
@@ -215,7 +216,7 @@ public:
 
   /** \brief Clear any error settings.
    * This makes the markers appear as if the state is no longer invalid. */
-  void clearError(void);
+  void clearError();
 
 protected:
   bool transformFeedbackPose(const visualization_msgs::InteractiveMarkerFeedbackConstPtr& feedback,
@@ -309,4 +310,4 @@ private:
   // remove '_' characters from name
   static std::string fixName(std::string name);
 };
-}
+}  // namespace robot_interaction

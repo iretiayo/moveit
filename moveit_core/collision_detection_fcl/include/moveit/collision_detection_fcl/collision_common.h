@@ -40,6 +40,7 @@
 #include <moveit/collision_detection/collision_env.h>
 #include <moveit/macros/class_forward.h>
 #include <moveit/collision_detection_fcl/fcl_compat.h>
+#include <geometric_shapes/check_isometry.h>
 
 #if (MOVEIT_FCL_VERSION >= FCL_VERSION_CHECK(0, 6, 0))
 #include <fcl/broadphase/broadphase_collision_manager.h>
@@ -139,12 +140,12 @@ struct CollisionGeometryData
 /** \brief Data structure which is passed to the collision callback function of the collision manager. */
 struct CollisionData
 {
-  CollisionData() : req_(NULL), active_components_only_(NULL), res_(NULL), acm_(NULL), done_(false)
+  CollisionData() : req_(nullptr), active_components_only_(nullptr), res_(nullptr), acm_(nullptr), done_(false)
   {
   }
 
   CollisionData(const CollisionRequest* req, CollisionResult* res, const AllowedCollisionMatrix* acm)
-    : req_(req), active_components_only_(NULL), res_(res), acm_(acm), done_(false)
+    : req_(req), active_components_only_(nullptr), res_(res), acm_(acm), done_(false)
   {
   }
 
@@ -225,7 +226,7 @@ struct FCLGeometry
   }
 
   /** \brief Updates the \e collision_geometry_data_ with new data while also setting the \e collision_geometry_ to the
-  *   new data. */
+   *   new data. */
   template <typename T>
   void updateCollisionGeometryData(const T* data, int shape_index, bool newType)
   {
@@ -268,21 +269,21 @@ struct FCLManager
 };
 
 /** \brief Callback function used by the FCLManager used for each pair of collision objects to
-*   calculate object contact information.
-*
-*   \param o1 First FCL collision object
-*   \param o2 Second FCL collision object
-*   \data General pointer to arbitrary data which is used during the callback
-*   \return True terminates the distance check, false continues it to the next pair of objects */
+ *   calculate object contact information.
+ *
+ *   \param o1 First FCL collision object
+ *   \param o2 Second FCL collision object
+ *   \data General pointer to arbitrary data which is used during the callback
+ *   \return True terminates the distance check, false continues it to the next pair of objects */
 bool collisionCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void* data);
 
 /** \brief Callback function used by the FCLManager used for each pair of collision objects to
-*   calculate collisions and distances.
-*
-*   \param o1 First FCL collision object
-*   \param o2 Second FCL collision object
-*   \data General pointer to arbitrary data which is used during the callback
-*   \return True terminates the collision check, false continues it to the next pair of objects */
+ *   calculate collisions and distances.
+ *
+ *   \param o1 First FCL collision object
+ *   \param o2 Second FCL collision object
+ *   \data General pointer to arbitrary data which is used during the callback
+ *   \return True terminates the collision check, false continues it to the next pair of objects */
 bool distanceCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void* data, double& min_dist);
 
 /** \brief Create new FCLGeometry object out of robot link model. */
@@ -316,10 +317,11 @@ void cleanCollisionGeometryCache();
 /** \brief Transforms an Eigen Isometry3d to FCL coordinate transformation */
 inline void transform2fcl(const Eigen::Isometry3d& b, fcl::Transform3d& f)
 {
+  ASSERT_ISOMETRY(b);
 #if (MOVEIT_FCL_VERSION >= FCL_VERSION_CHECK(0, 6, 0))
   f = b.matrix();
 #else
-  Eigen::Quaterniond q(b.rotation());
+  Eigen::Quaterniond q(b.linear());
   f.setTranslation(fcl::Vector3d(b.translation().x(), b.translation().y(), b.translation().z()));
   f.setQuatRotation(fcl::Quaternion3f(q.w(), q.x(), q.y(), q.z()));
 #endif
@@ -360,4 +362,4 @@ inline void fcl2costsource(const fcl::CostSourced& fcs, CostSource& cs)
 
   cs.cost = fcs.cost_density;
 }
-}
+}  // namespace collision_detection

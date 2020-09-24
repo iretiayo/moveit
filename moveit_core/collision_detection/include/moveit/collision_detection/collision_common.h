@@ -47,7 +47,7 @@
 
 namespace collision_detection
 {
-MOVEIT_CLASS_FORWARD(AllowedCollisionMatrix);
+MOVEIT_CLASS_FORWARD(AllowedCollisionMatrix);  // Defines AllowedCollisionMatrixPtr, ConstPtr, WeakPtr... etc
 
 /** \brief The types of bodies that are considered for collision */
 namespace BodyTypes
@@ -64,7 +64,7 @@ enum Type
   /** \brief A body in the environment */
   WORLD_OBJECT
 };
-}
+}  // namespace BodyTypes
 
 /** \brief The types of bodies that are considered for collision */
 typedef BodyTypes::Type BodyType;
@@ -160,6 +160,9 @@ struct CollisionResult
     contacts.clear();
     cost_sources.clear();
   }
+
+  /** \brief Throttled warning printing the first collision pair, if any. All collisions are logged at DEBUG level */
+  void print() const;
 
   /** \brief True if collision was found, false otherwise */
   bool collision;
@@ -392,4 +395,4 @@ struct DistanceResult
     distances.clear();
   }
 };
-}
+}  // namespace collision_detection

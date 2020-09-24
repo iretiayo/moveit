@@ -77,10 +77,10 @@ public:
    */
   KDLKinematicsPlugin();
 
-  bool getPositionIK(
-      const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, std::vector<double>& solution,
-      moveit_msgs::MoveItErrorCodes& error_code,
-      const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const override;
+  bool
+  getPositionIK(const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state,
+                std::vector<double>& solution, moveit_msgs::MoveItErrorCodes& error_code,
+                const kinematics::KinematicsQueryOptions& options = kinematics::KinematicsQueryOptions()) const override;
 
   bool searchPositionIK(
       const geometry_msgs::Pose& ik_pose, const std::vector<double>& ik_seed_state, double timeout,
@@ -125,6 +125,7 @@ protected:
   typedef Eigen::Matrix<double, 6, 1> Twist;
 
   /// Solve position IK given initial joint values
+  // NOLINTNEXTLINE(readability-identifier-naming)
   int CartToJnt(KDL::ChainIkSolverVelMimicSVD& ik_solver, const KDL::JntArray& q_init, const KDL::Frame& p_in,
                 KDL::JntArray& q_out, const unsigned int max_iter, const Eigen::VectorXd& joint_weights,
                 const Twist& cartesian_weights) const;
@@ -177,4 +178,4 @@ private:
    * = 0.0: perform position-only IK */
   double orientation_vs_position_weight_;
 };
-}
+}  // namespace kdl_kinematics_plugin

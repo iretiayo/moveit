@@ -1,37 +1,37 @@
 /*********************************************************************
-* Software License Agreement (BSD License)
-*
-*  Copyright (c) 2013, Ioan A. Sucan
-*  Copyright (c) 2013, Willow Garage, Inc.
-*  All rights reserved.
-*
-*  Redistribution and use in source and binary forms, with or without
-*  modification, are permitted provided that the following conditions
-*  are met:
-*
-*   * Redistributions of source code must retain the above copyright
-*     notice, this list of conditions and the following disclaimer.
-*   * Redistributions in binary form must reproduce the above
-*     copyright notice, this list of conditions and the following
-*     disclaimer in the documentation and/or other materials provided
-*     with the distribution.
-*   * Neither the name of Willow Garage, Inc. nor the names of its
-*     contributors may be used to endorse or promote products derived
-*     from this software without specific prior written permission.
-*
-*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-*  POSSIBILITY OF SUCH DAMAGE.
-*********************************************************************/
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2013, Ioan A. Sucan
+ *  Copyright (c) 2013, Willow Garage, Inc.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
 
 /* Author: Ioan Sucan */
 
@@ -59,7 +59,7 @@ namespace moveit
 {
 namespace core
 {
-MOVEIT_CLASS_FORWARD(RobotState);
+MOVEIT_CLASS_FORWARD(RobotState);  // Defines RobotStatePtr, ConstPtr, WeakPtr... etc
 
 /** \brief Signature for functions that can verify that if the group \e joint_group in \e robot_state is set to \e
    joint_group_variable_values
@@ -246,6 +246,9 @@ public:
     return velocity_;
   }
 
+  /** \brief Set all velocities to 0.0 */
+  void zeroVelocities();
+
   /** \brief Given an array with velocity values for all variables, set those values as the velocities in this state */
   void setVariableVelocities(const double* velocity)
   {
@@ -303,6 +306,9 @@ public:
     return velocity_[index];
   }
 
+  /** \brief Remove velocities from this state (this differs from setting them to zero) */
+  void dropVelocities();
+
   /** @} */
 
   /** \name Getting and setting variable acceleration
@@ -333,6 +339,9 @@ public:
   {
     return acceleration_;
   }
+
+  /** \brief Set all accelerations to 0.0 */
+  void zeroAccelerations();
 
   /** \brief Given an array with acceleration values for all variables, set those values as the accelerations in this
    * state */
@@ -396,6 +405,9 @@ public:
     return acceleration_[index];
   }
 
+  /** \brief Remove accelerations from this state (this differs from setting them to zero) */
+  void dropAccelerations();
+
   /** @} */
 
   /** \name Getting and setting variable effort
@@ -426,6 +438,9 @@ public:
     return effort_;
   }
 
+  /** \brief Set all effort values to 0.0 */
+  void zeroEffort();
+
   /** \brief Given an array with effort values for all variables, set those values as the effort in this state */
   void setVariableEffort(const double* effort)
   {
@@ -447,8 +462,7 @@ public:
 
   /** \brief Set the effort of a set of variables. If unknown variable names are specified, an exception is thrown.
       Additionally, \e missing_variables is filled with the names of the variables that are not set. */
-  void setVariableEffort(const std::map<std::string, double>& variable_map,
-                         std::vector<std::string>& missing_variables);
+  void setVariableEffort(const std::map<std::string, double>& variable_map, std::vector<std::string>& missing_variables);
 
   /** \brief Set the effort of a set of variables. If unknown variable names are specified, an exception is thrown. */
   void setVariableEffort(const std::vector<std::string>& variable_names,
@@ -481,6 +495,12 @@ public:
   {
     return effort_[index];
   }
+
+  /** \brief Remove effort values from this state (this differs from setting them to zero) */
+  void dropEffort();
+
+  /** \brief Reduce RobotState to kinematic information (remove velocity, acceleration and effort, if present) */
+  void dropDynamics();
 
   /** \brief Invert velocity if present. */
   void invertVelocity();
@@ -1151,8 +1171,8 @@ public:
 
   /** \brief Compute the Jacobian with reference to a particular point on a given link, for a specified group.
    * \param group The group to compute the Jacobian for
-   * \param link_name The name of the link
-   * \param reference_point_position The reference point position (with respect to the link specified in link_name)
+   * \param link The link model to compute the Jacobian for
+   * \param reference_point_position The reference point position (with respect to the link specified in link)
    * \param jacobian The resultant jacobian
    * \param use_quaternion_representation Flag indicating if the Jacobian should use a quaternion representation
    * (default is false)
@@ -1163,8 +1183,8 @@ public:
 
   /** \brief Compute the Jacobian with reference to a particular point on a given link, for a specified group.
    * \param group The group to compute the Jacobian for
-   * \param link_name The name of the link
-   * \param reference_point_position The reference point position (with respect to the link specified in link_name)
+   * \param link The link model to compute the Jacobian for
+   * \param reference_point_position The reference point position (with respect to the link specified in link)
    * \param jacobian The resultant jacobian
    * \param use_quaternion_representation Flag indicating if the Jacobian should use a quaternion representation
    * (default is false)
@@ -1307,6 +1327,8 @@ public:
    *   Checks the cache and if there are any dirty (non-updated) transforms, first updates them as needed.
    *   A related, more comprehensive function is |getFrameTransform|, which additionally to link frames
    *   also searches for attached object frames and their subframes.
+   *
+   *  The returned transformation is always a valid isometry.
    */
   const Eigen::Isometry3d& getGlobalLinkTransform(const std::string& link_name)
   {
@@ -1647,18 +1669,24 @@ public:
 
   /** \brief Get the transformation matrix from the model frame (root of model) to the frame identified by \e frame_id
    *
-   * If frame_id was not found, \e frame_found is set to false and an identity transform is returned */
+   * If frame_id was not found, \e frame_found is set to false and an identity transform is returned.
+   *
+   * The returned transformation is always a valid isometry. */
   const Eigen::Isometry3d& getFrameTransform(const std::string& frame_id, bool* frame_found = nullptr);
 
   /** \brief Get the transformation matrix from the model frame (root of model) to the frame identified by \e frame_id
    *
-   * If frame_id was not found, \e frame_found is set to false and an identity transform is returned */
+   * If frame_id was not found, \e frame_found is set to false and an identity transform is returned.
+   *
+   * The returned transformation is always a valid isometry. */
   const Eigen::Isometry3d& getFrameTransform(const std::string& frame_id, bool* frame_found = nullptr) const;
 
   /** \brief Get the transformation matrix from the model frame (root of model) to the frame identified by \e frame_id
    *
    * If this frame is attached to a robot link, the link pointer is returned in \e robot_link.
-   * If frame_id was not found, \e frame_found is set to false and an identity transform is returned */
+   * If frame_id was not found, \e frame_found is set to false and an identity transform is returned.
+   *
+   * The returned transformation is always a valid isometry. */
   const Eigen::Isometry3d& getFrameInfo(const std::string& frame_id, const LinkModel*& robot_link,
                                         bool& frame_found) const;
 
@@ -1712,8 +1740,7 @@ public:
   void printStatePositions(std::ostream& out = std::cout) const;
 
   /** \brief Output to console the current state of the robot's joint limits */
-  void printStatePositionsWithJointLimits(const moveit::core::JointModelGroup* jmg,
-                                          std::ostream& out = std::cout) const;
+  void printStatePositionsWithJointLimits(const moveit::core::JointModelGroup* jmg, std::ostream& out = std::cout) const;
 
   void printStateInfo(std::ostream& out = std::cout) const;
 
@@ -1734,15 +1761,14 @@ private:
   {
     dirty_joint_transforms_[joint->getJointIndex()] = 1;
     dirty_link_transforms_ =
-        dirty_link_transforms_ == NULL ? joint : robot_model_->getCommonRoot(dirty_link_transforms_, joint);
+        dirty_link_transforms_ == nullptr ? joint : robot_model_->getCommonRoot(dirty_link_transforms_, joint);
   }
 
   void markDirtyJointTransforms(const JointModelGroup* group)
   {
-    const std::vector<const JointModel*>& jm = group->getActiveJointModels();
-    for (std::size_t i = 0; i < jm.size(); ++i)
-      dirty_joint_transforms_[jm[i]->getJointIndex()] = 1;
-    dirty_link_transforms_ = dirty_link_transforms_ == NULL ?
+    for (const JointModel* jm : group->getActiveJointModels())
+      dirty_joint_transforms_[jm->getJointIndex()] = 1;
+    dirty_link_transforms_ = dirty_link_transforms_ == nullptr ?
                                  group->getCommonRoot() :
                                  robot_model_->getCommonRoot(dirty_link_transforms_, group->getCommonRoot());
   }
@@ -1753,12 +1779,11 @@ private:
 
   void updateMimicJoint(const JointModel* joint)
   {
-    const std::vector<const JointModel*>& mim = joint->getMimicRequests();
     double v = position_[joint->getFirstVariableIndex()];
-    for (std::size_t i = 0; i < mim.size(); ++i)
+    for (const JointModel* jm : joint->getMimicRequests())
     {
-      position_[mim[i]->getFirstVariableIndex()] = mim[i]->getMimicFactor() * v + mim[i]->getMimicOffset();
-      markDirtyJointTransforms(mim[i]);
+      position_[jm->getFirstVariableIndex()] = jm->getMimicFactor() * v + jm->getMimicOffset();
+      markDirtyJointTransforms(jm);
     }
   }
 
@@ -1766,15 +1791,14 @@ private:
   /* use updateMimicJoints() instead, which also marks joints dirty */
   [[deprecated]] void updateMimicJoint(const std::vector<const JointModel*>& mim)
   {
-    for (std::size_t i = 0; i < mim.size(); ++i)
+    for (const JointModel* jm : mim)
     {
-      const int fvi = mim[i]->getFirstVariableIndex();
-      position_[fvi] =
-          mim[i]->getMimicFactor() * position_[mim[i]->getMimic()->getFirstVariableIndex()] + mim[i]->getMimicOffset();
+      const int fvi = jm->getFirstVariableIndex();
+      position_[fvi] = jm->getMimicFactor() * position_[jm->getMimic()->getFirstVariableIndex()] + jm->getMimicOffset();
       // Only mark joint transform dirty, but not the associated link transform
       // as this function is always used in combination of
       // updateMimicJoint(group->getMimicJointModels()) + markDirtyJointTransforms(group);
-      dirty_joint_transforms_[mim[i]->getJointIndex()] = 1;
+      dirty_joint_transforms_[jm->getJointIndex()] = 1;
     }
   }
 
@@ -1844,5 +1868,5 @@ private:
 
 /** \brief Operator overload for printing variable bounds to a stream */
 std::ostream& operator<<(std::ostream& out, const RobotState& s);
-}
-}
+}  // namespace core
+}  // namespace moveit

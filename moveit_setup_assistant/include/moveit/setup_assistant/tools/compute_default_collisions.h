@@ -40,7 +40,7 @@
 #include <moveit/macros/class_forward.h>
 namespace planning_scene
 {
-MOVEIT_CLASS_FORWARD(PlanningScene);
+MOVEIT_CLASS_FORWARD(PlanningScene);  // Defines PlanningScenePtr, ConstPtr, WeakPtr... etc
 }
 
 namespace moveit_setup_assistant
@@ -108,4 +108,4 @@ const std::string disabledReasonToString(DisabledReason reason);
  * \return reason as struct
  */
 DisabledReason disabledReasonFromString(const std::string& reason);
-}
+}  // namespace moveit_setup_assistant

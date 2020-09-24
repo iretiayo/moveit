@@ -43,7 +43,7 @@
 
 namespace robot_model_loader
 {
-MOVEIT_CLASS_FORWARD(RobotModelLoader);
+MOVEIT_CLASS_FORWARD(RobotModelLoader);  // Defines RobotModelLoaderPtr, ConstPtr, WeakPtr... etc
 
 /** @class RobotModelLoader */
 class RobotModelLoader
@@ -132,4 +132,4 @@ private:
   rdf_loader::RDFLoaderPtr rdf_loader_;
   kinematics_plugin_loader::KinematicsPluginLoaderPtr kinematics_loader_;
 };
-}
+}  // namespace robot_model_loader

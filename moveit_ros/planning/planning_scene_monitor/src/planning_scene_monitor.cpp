@@ -240,7 +240,7 @@ void PlanningSceneMonitor::initialize(const planning_scene::PlanningScenePtr& sc
 
   last_update_time_ = last_robot_motion_time_ = ros::Time::now();
   last_robot_state_update_wall_time_ = ros::WallTime::now();
-  dt_state_update_ = ros::WallDuration(0.1);
+  dt_state_update_ = ros::WallDuration(0.03);
 
   double temp_wait_time = 0.05;
 
@@ -370,6 +370,11 @@ void PlanningSceneMonitor::scenePublishingThread()
             if (octomap_monitor_)
               lock = octomap_monitor_->getOcTreePtr()->reading();
             scene_->getPlanningSceneDiffMsg(msg);
+            if (new_scene_update_ == UPDATE_STATE)
+            {
+              msg.robot_state.attached_collision_objects.clear();
+              msg.robot_state.is_diff = true;
+            }
           }
           boost::recursive_mutex::scoped_lock prevent_shape_cache_updates(shape_handles_lock_);  // we don't want the
                                                                                                  // transform cache to
@@ -405,7 +410,6 @@ void PlanningSceneMonitor::scenePublishingThread()
     }
     if (publish_msg)
     {
-      rate.reset();
       planning_scene_publisher_.publish(msg);
       if (is_full)
         ROS_DEBUG_NAMED(LOGNAME, "Published full planning scene: '%s'", msg.name.c_str());
@@ -527,9 +531,16 @@ void PlanningSceneMonitor::newPlanningSceneCallback(const moveit_msgs::PlanningS
 
 void PlanningSceneMonitor::clearOctomap()
 {
-  octomap_monitor_->getOcTreePtr()->lockWrite();
-  octomap_monitor_->getOcTreePtr()->clear();
-  octomap_monitor_->getOcTreePtr()->unlockWrite();
+  if (octomap_monitor_)
+  {
+    octomap_monitor_->getOcTreePtr()->lockWrite();
+    octomap_monitor_->getOcTreePtr()->clear();
+    octomap_monitor_->getOcTreePtr()->unlockWrite();
+  }
+  else
+  {
+    ROS_WARN_NAMED(LOGNAME, "Unable to clear octomap since no octomap monitor has been initialized");
+  }
 }
 
 bool PlanningSceneMonitor::newPlanningSceneMessage(const moveit_msgs::PlanningScene& scene)
@@ -752,8 +763,7 @@ void PlanningSceneMonitor::includeWorldObjectsInOctree()
   boost::recursive_mutex::scoped_lock _(shape_handles_lock_);
 
   // clear information about any attached object
-  for (std::pair<const std::string,
-                 std::vector<std::pair<occupancy_map_monitor::ShapeHandle, const Eigen::Isometry3d*>>>&
+  for (std::pair<const std::string, std::vector<std::pair<occupancy_map_monitor::ShapeHandle, const Eigen::Isometry3d*>>>&
            collision_body_shape_handle : collision_body_shape_handles_)
     for (std::pair<occupancy_map_monitor::ShapeHandle, const Eigen::Isometry3d*>& it :
          collision_body_shape_handle.second)

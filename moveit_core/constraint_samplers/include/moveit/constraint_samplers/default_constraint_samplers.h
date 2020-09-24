@@ -42,7 +42,7 @@
 
 namespace constraint_samplers
 {
-MOVEIT_CLASS_FORWARD(JointConstraintSampler);
+MOVEIT_CLASS_FORWARD(JointConstraintSampler);  // Defines JointConstraintSamplerPtr, ConstPtr, WeakPtr... etc
 
 /**
  * \brief JointConstraintSampler is a class that allows the sampling
@@ -279,7 +279,7 @@ struct IKSamplingPose
       orientation_constraint_; /**< \brief Holds the orientation constraint for sampling */
 };
 
-MOVEIT_CLASS_FORWARD(IKConstraintSampler);
+MOVEIT_CLASS_FORWARD(IKConstraintSampler);  // Defines IKConstraintSamplerPtr, ConstPtr, WeakPtr... etc
 
 /**
  * \brief A class that allows the sampling of IK constraints.
@@ -465,7 +465,7 @@ public:
    * Otherwise, a random quaternion is produced.
    *
    * @param [out] pos The position component of the sample
-   * @param [out] quat The orientation component of the sample
+   * @param [out] quat The orientation component of the sample. It will always be a normalized quaternion.
    * @param [in] ks The reference state used for performing transforms
    * @param [in] max_attempts The maximum attempts to try to sample - applies only to the position constraint
    *
@@ -524,4 +524,4 @@ protected:
                                         frame of the end effector */
   Eigen::Isometry3d eef_to_ik_tip_transform_; /**< \brief Holds the transformation from end effector to IK tip frame */
 };
-}
+}  // namespace constraint_samplers

@@ -65,7 +65,7 @@ protected:
     value_.reset(new CollisionAllocatorType);
     robot_model_ = moveit::core::loadTestingRobotModel("pr2");
     robot_model_ok_ = static_cast<bool>(robot_model_);
-    kinect_dae_resource_ = "package://moveit_resources/pr2_description/urdf/meshes/sensors/kinect_v0/kinect.dae";
+    kinect_dae_resource_ = "package://moveit_resources_pr2_description/urdf/meshes/sensors/kinect_v0/kinect.dae";
 
     acm_.reset(new collision_detection::AllowedCollisionMatrix(robot_model_->getLinkModelNames(), true));
 
@@ -239,7 +239,8 @@ TYPED_TEST_P(CollisionDetectorTest, ContactPositions)
   }
 
   pos1 = Eigen::Isometry3d(Eigen::Translation3d(3.0, 0.0, 0.0) * Eigen::Quaterniond::Identity());
-  pos2 = Eigen::Isometry3d(Eigen::Translation3d(3.0, 0.0, 0.0) * Eigen::Quaterniond(0.965, 0.0, 0.258, 0.0));
+  pos2 = Eigen::Isometry3d(Eigen::Translation3d(3.0, 0.0, 0.0) *
+                           Eigen::Quaterniond(sqrt(1 - pow(0.258, 2)), 0.0, 0.258, 0.0));
   //  robot_state.getLinkState("r_gripper_palm_link")->updateGivenGlobalLinkTransform(pos1);
   //  robot_state.getLinkState("l_gripper_palm_link")->updateGivenGlobalLinkTransform(pos2);
   robot_state.updateStateWithLinkAt("r_gripper_palm_link", pos1);
@@ -259,7 +260,8 @@ TYPED_TEST_P(CollisionDetectorTest, ContactPositions)
   }
 
   pos1 = Eigen::Isometry3d(Eigen::Translation3d(3.0, 0.0, 0.0) * Eigen::Quaterniond::Identity());
-  pos2 = Eigen::Isometry3d(Eigen::Translation3d(3.0, 0.0, 0.0) * Eigen::Quaterniond(M_PI / 4.0, 0.0, M_PI / 4.0, 0.0));
+  pos2 = Eigen::Isometry3d(Eigen::Translation3d(3.0, 0.0, 0.0) *
+                           Eigen::Quaterniond(M_PI / 4.0, 0.0, M_PI / 4.0, 0.0).normalized());
   //  robot_state.getLinkState("r_gripper_palm_link")->updateGivenGlobalLinkTransform(pos1);
   //  robot_state.getLinkState("l_gripper_palm_link")->updateGivenGlobalLinkTransform(pos2);
   robot_state.updateStateWithLinkAt("r_gripper_palm_link", pos1);

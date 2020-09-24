@@ -39,10 +39,6 @@
 // KDL
 #include <kdl/jntarray.hpp>
 #include <kdl_parser/kdl_parser.hpp>
-#include <kdl/chainiksolverpos_nr_jl.hpp>
-#include <kdl/chainiksolvervel_pinv.hpp>
-#include <kdl/chainfksolverpos_recursive.hpp>
-#include <kdl/chainjnttojacsolver.hpp>
 #include <kdl/tree.hpp>
 
 namespace dynamics_solver
@@ -53,7 +49,8 @@ inline geometry_msgs::Vector3 transformVector(const Eigen::Isometry3d& transform
 {
   Eigen::Vector3d p;
   p = Eigen::Vector3d(vector.x, vector.y, vector.z);
-  p = transform.rotation() * p;
+  // transform has to be a valid isometry; the caller is responsible for the check
+  p = transform.linear() * p;
 
   geometry_msgs::Vector3 result;
   result.x = p.x();
@@ -243,9 +240,9 @@ bool DynamicsSolver::getMaxPayload(const std::vector<double>& joint_angles, doub
   }
 
   state_->setJointGroupPositions(joint_model_group_, joint_angles);
-  const Eigen::Isometry3d& base_frame = state_->getFrameTransform(base_name_);
-  const Eigen::Isometry3d& tip_frame = state_->getFrameTransform(tip_name_);
-  Eigen::Isometry3d transform = tip_frame.inverse() * base_frame;
+  const Eigen::Isometry3d& base_frame = state_->getFrameTransform(base_name_);  // valid isometry by contract
+  const Eigen::Isometry3d& tip_frame = state_->getFrameTransform(tip_name_);    // valid isometry by contract
+  Eigen::Isometry3d transform = tip_frame.inverse() * base_frame;               // valid isometry by construction
   wrenches.back().force.z = 1.0;
   wrenches.back().force = transformVector(transform, wrenches.back().force);
   wrenches.back().torque = transformVector(transform, wrenches.back().torque);
@@ -299,9 +296,9 @@ bool DynamicsSolver::getPayloadTorques(const std::vector<double>& joint_angles, 
   std::vector<geometry_msgs::Wrench> wrenches(num_segments_);
   state_->setJointGroupPositions(joint_model_group_, joint_angles);
 
-  const Eigen::Isometry3d& base_frame = state_->getFrameTransform(base_name_);
-  const Eigen::Isometry3d& tip_frame = state_->getFrameTransform(tip_name_);
-  Eigen::Isometry3d transform = tip_frame.inverse() * base_frame;
+  const Eigen::Isometry3d& base_frame = state_->getFrameTransform(base_name_);  // valid isometry by contract
+  const Eigen::Isometry3d& tip_frame = state_->getFrameTransform(tip_name_);    // valid isometry by contract
+  Eigen::Isometry3d transform = tip_frame.inverse() * base_frame;               // valid isometry by construction
   wrenches.back().force.z = payload * gravity_;
   wrenches.back().force = transformVector(transform, wrenches.back().force);
   wrenches.back().torque = transformVector(transform, wrenches.back().torque);

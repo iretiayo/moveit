@@ -37,9 +37,6 @@
 
 #pragma once
 
-#include <trajectory_msgs/JointTrajectory.h>
-#include <moveit_msgs/JointLimits.h>
-#include <moveit_msgs/RobotState.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
 
 namespace trajectory_processing
@@ -83,4 +80,4 @@ private:
   bool add_points_;  /// @brief If true, add two points to trajectory (first and last segments).
                      /// If false, move the 2nd and 2nd-last points.
 };
-}
+}  // namespace trajectory_processing

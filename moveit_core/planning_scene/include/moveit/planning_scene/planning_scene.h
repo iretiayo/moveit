@@ -59,7 +59,7 @@
 /** \brief This namespace includes the central class for representing planning contexts */
 namespace planning_scene
 {
-MOVEIT_CLASS_FORWARD(PlanningScene);
+MOVEIT_CLASS_FORWARD(PlanningScene);  // Defines PlanningScenePtr, ConstPtr, WeakPtr... etc
 
 /** \brief This is the function signature for additional feasibility checks to be imposed on states (in addition to
    respecting constraints and collision avoidance).
@@ -72,8 +72,7 @@ typedef boost::function<bool(const moveit::core::RobotState&, bool)> StateFeasib
     The order of the arguments matters: the notion of feasibility is to be checked for motion segments that start at the
    first state and end at the second state. The third argument indicates
     whether the check should be verbose or not. */
-typedef boost::function<bool(const moveit::core::RobotState&, const moveit::core::RobotState&, bool)>
-    MotionFeasibilityFn;
+typedef boost::function<bool(const moveit::core::RobotState&, const moveit::core::RobotState&, bool)> MotionFeasibilityFn;
 
 /** \brief A map from object names (e.g., attached bodies, collision objects) to their colors */
 typedef std::map<std::string, std_msgs::ColorRGBA> ObjectColorMap;
@@ -371,8 +370,7 @@ public:
 
   /** \brief Check if a given state is in collision (with the environment or self collision)
       If a group name is specified, collision checking is done for that group only. */
-  bool isStateColliding(const moveit_msgs::RobotState& state, const std::string& group = "",
-                        bool verbose = false) const;
+  bool isStateColliding(const moveit_msgs::RobotState& state, const std::string& group = "", bool verbose = false) const;
 
   /** \brief Check whether the current state is in collision, and if needed, updates the collision transforms of the
    * current state before the computation. */
@@ -482,8 +480,7 @@ public:
                           moveit::core::RobotState& robot_state) const
   {
     robot_state.updateCollisionBodyTransforms();
-    checkSelfCollision(req, res, static_cast<const moveit::core::RobotState&>(robot_state),
-                       getAllowedCollisionMatrix());
+    checkSelfCollision(req, res, static_cast<const moveit::core::RobotState&>(robot_state), getAllowedCollisionMatrix());
   }
 
   /** \brief Check whether a specified state (\e robot_state) is in self collision */
@@ -867,14 +864,14 @@ public:
   /** \brief Check if a given path is valid. Each state is checked for validity (collision avoidance and feasibility) */
   bool isPathValid(const moveit_msgs::RobotState& start_state, const moveit_msgs::RobotTrajectory& trajectory,
                    const std::string& group = "", bool verbose = false,
-                   std::vector<std::size_t>* invalid_index = NULL) const;
+                   std::vector<std::size_t>* invalid_index = nullptr) const;
 
   /** \brief Check if a given path is valid. Each state is checked for validity (collision avoidance, feasibility and
    * constraint satisfaction). It is also checked that the goal constraints are satisfied by the last state on the
    * passed in trajectory. */
   bool isPathValid(const moveit_msgs::RobotState& start_state, const moveit_msgs::RobotTrajectory& trajectory,
                    const moveit_msgs::Constraints& path_constraints, const std::string& group = "",
-                   bool verbose = false, std::vector<std::size_t>* invalid_index = NULL) const;
+                   bool verbose = false, std::vector<std::size_t>* invalid_index = nullptr) const;
 
   /** \brief Check if a given path is valid. Each state is checked for validity (collision avoidance, feasibility and
    * constraint satisfaction). It is also checked that the goal constraints are satisfied by the last state on the
@@ -882,7 +879,7 @@ public:
   bool isPathValid(const moveit_msgs::RobotState& start_state, const moveit_msgs::RobotTrajectory& trajectory,
                    const moveit_msgs::Constraints& path_constraints, const moveit_msgs::Constraints& goal_constraints,
                    const std::string& group = "", bool verbose = false,
-                   std::vector<std::size_t>* invalid_index = NULL) const;
+                   std::vector<std::size_t>* invalid_index = nullptr) const;
 
   /** \brief Check if a given path is valid. Each state is checked for validity (collision avoidance, feasibility and
    * constraint satisfaction). It is also checked that the goal constraints are satisfied by the last state on the
@@ -890,7 +887,7 @@ public:
   bool isPathValid(const moveit_msgs::RobotState& start_state, const moveit_msgs::RobotTrajectory& trajectory,
                    const moveit_msgs::Constraints& path_constraints,
                    const std::vector<moveit_msgs::Constraints>& goal_constraints, const std::string& group = "",
-                   bool verbose = false, std::vector<std::size_t>* invalid_index = NULL) const;
+                   bool verbose = false, std::vector<std::size_t>* invalid_index = nullptr) const;
 
   /** \brief Check if a given path is valid. Each state is checked for validity (collision avoidance, feasibility and
    * constraint satisfaction). It is also checked that the goal constraints are satisfied by the last state on the
@@ -898,7 +895,7 @@ public:
   bool isPathValid(const robot_trajectory::RobotTrajectory& trajectory,
                    const moveit_msgs::Constraints& path_constraints,
                    const std::vector<moveit_msgs::Constraints>& goal_constraints, const std::string& group = "",
-                   bool verbose = false, std::vector<std::size_t>* invalid_index = NULL) const;
+                   bool verbose = false, std::vector<std::size_t>* invalid_index = nullptr) const;
 
   /** \brief Check if a given path is valid. Each state is checked for validity (collision avoidance, feasibility and
    * constraint satisfaction). It is also checked that the goal constraints are satisfied by the last state on the
@@ -906,17 +903,17 @@ public:
   bool isPathValid(const robot_trajectory::RobotTrajectory& trajectory,
                    const moveit_msgs::Constraints& path_constraints, const moveit_msgs::Constraints& goal_constraints,
                    const std::string& group = "", bool verbose = false,
-                   std::vector<std::size_t>* invalid_index = NULL) const;
+                   std::vector<std::size_t>* invalid_index = nullptr) const;
 
   /** \brief Check if a given path is valid. Each state is checked for validity (collision avoidance, feasibility and
    * constraint satisfaction). */
   bool isPathValid(const robot_trajectory::RobotTrajectory& trajectory,
                    const moveit_msgs::Constraints& path_constraints, const std::string& group = "",
-                   bool verbose = false, std::vector<std::size_t>* invalid_index = NULL) const;
+                   bool verbose = false, std::vector<std::size_t>* invalid_index = nullptr) const;
 
   /** \brief Check if a given path is valid. Each state is checked for validity (collision avoidance and feasibility) */
   bool isPathValid(const robot_trajectory::RobotTrajectory& trajectory, const std::string& group = "",
-                   bool verbose = false, std::vector<std::size_t>* invalid_index = NULL) const;
+                   bool verbose = false, std::vector<std::size_t>* invalid_index = nullptr) const;
 
   /** \brief Get the top \e max_costs cost sources for a specified trajectory. The resulting costs are stored in \e
    * costs */
@@ -943,8 +940,7 @@ public:
 
   /** \brief Check if a message includes any information about a planning scene, or it is just a default, empty message.
    */
-  [[deprecated("Use moveit/utils/message_checks.h instead")]] static bool
-  isEmpty(const moveit_msgs::PlanningScene& msg);
+  [[deprecated("Use moveit/utils/message_checks.h instead")]] static bool isEmpty(const moveit_msgs::PlanningScene& msg);
 
   /** \brief Check if a message includes any information about a planning scene world, or it is just a default, empty
    * message. */
@@ -1022,7 +1018,7 @@ private:
   moveit::core::AttachedBodyCallback current_state_attached_body_callback_;
 
   // This variable is not necessarily used by child planning scenes
-  // This Transforms class is actually a SceneTransform class
+  // This Transforms class is actually a SceneTransforms class
   moveit::core::TransformsPtr scene_transforms_;  // if NULL use parent's
 
   collision_detection::WorldPtr world_;             // never NULL, never shared with parent/child
@@ -1044,4 +1040,4 @@ private:
   // a map of object types
   std::unique_ptr<ObjectTypeMap> object_types_;
 };
-}
+}  // namespace planning_scene

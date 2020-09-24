@@ -47,7 +47,7 @@
 /** \brief This namespace includes functionality specific to the execution and monitoring of motion plans */
 namespace plan_execution
 {
-MOVEIT_CLASS_FORWARD(PlanExecution);
+MOVEIT_CLASS_FORWARD(PlanExecution);  // Defines PlanExecutionPtr, ConstPtr, WeakPtr... etc
 
 class PlanExecution
 {
@@ -163,4 +163,4 @@ private:
   class DynamicReconfigureImpl;
   DynamicReconfigureImpl* reconfigure_impl_;
 };
-}
+}  // namespace plan_execution

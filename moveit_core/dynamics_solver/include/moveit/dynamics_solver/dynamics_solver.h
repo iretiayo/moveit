@@ -49,7 +49,7 @@
 /** \brief This namespace includes the dynamics_solver library */
 namespace dynamics_solver
 {
-MOVEIT_CLASS_FORWARD(DynamicsSolver);
+MOVEIT_CLASS_FORWARD(DynamicsSolver);  // Defines DynamicsSolverPtr, ConstPtr, WeakPtr... etc
 
 /**
  * This solver currently computes the required torques given a
@@ -149,4 +149,4 @@ private:
 
   double gravity_;  // Norm of the gravity vector passed in initialize()
 };
-}
+}  // namespace dynamics_solver

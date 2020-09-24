@@ -89,7 +89,7 @@ public:
   }
 };
 
-MOVEIT_CLASS_FORWARD(MoveGroupInterface);
+MOVEIT_CLASS_FORWARD(MoveGroupInterface);  // Defines MoveGroupInterfacePtr, ConstPtr, WeakPtr... etc
 
 /** \class MoveGroupInterface move_group_interface.h moveit/planning_interface/move_group_interface.h
 
@@ -749,7 +749,7 @@ public:
       Return -1.0 in case of error. */
   double computeCartesianPath(const std::vector<geometry_msgs::Pose>& waypoints, double eef_step, double jump_threshold,
                               moveit_msgs::RobotTrajectory& trajectory, bool avoid_collisions = true,
-                              moveit_msgs::MoveItErrorCodes* error_code = NULL);
+                              moveit_msgs::MoveItErrorCodes* error_code = nullptr);
 
   /** \brief Compute a Cartesian path that follows specified waypoints with a step size of at most \e eef_step meters
       between end effector configurations of consecutive points in the result \e trajectory. The reference frame for the
@@ -766,7 +766,7 @@ public:
   double computeCartesianPath(const std::vector<geometry_msgs::Pose>& waypoints, double eef_step, double jump_threshold,
                               moveit_msgs::RobotTrajectory& trajectory,
                               const moveit_msgs::Constraints& path_constraints, bool avoid_collisions = true,
-                              moveit_msgs::MoveItErrorCodes* error_code = NULL);
+                              moveit_msgs::MoveItErrorCodes* error_code = nullptr);
 
   /** \brief Stop any trajectory execution, if one is active */
   void stop();

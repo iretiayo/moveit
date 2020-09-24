@@ -48,7 +48,7 @@
 
 namespace plan_execution
 {
-MOVEIT_CLASS_FORWARD(PlanWithSensing);
+MOVEIT_CLASS_FORWARD(PlanWithSensing);  // Defines PlanWithSensingPtr, ConstPtr, WeakPtr... etc
 
 class PlanWithSensing
 {
@@ -133,4 +133,4 @@ private:
   class DynamicReconfigureImpl;
   DynamicReconfigureImpl* reconfigure_impl_;
 };
-}
+}  // namespace plan_execution

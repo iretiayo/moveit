@@ -42,7 +42,7 @@
 
 namespace chomp_interface
 {
-MOVEIT_CLASS_FORWARD(CHOMPInterface);
+MOVEIT_CLASS_FORWARD(CHOMPInterface);  // Defines CHOMPInterfacePtr, ConstPtr, WeakPtr... etc
 
 class CHOMPInterface : public chomp::ChompPlanner
 {
@@ -62,4 +62,4 @@ protected:
 
   chomp::ChompParameters params_;
 };
-}
+}  // namespace chomp_interface

@@ -71,7 +71,7 @@ struct ConstraintEvaluationResult
   double distance; /**< \brief The distance evaluation from the constraint or constraints */
 };
 
-MOVEIT_CLASS_FORWARD(KinematicConstraint);
+MOVEIT_CLASS_FORWARD(KinematicConstraint);  // Defines KinematicConstraintPtr, ConstPtr, WeakPtr... etc
 
 /// \brief Base class for representing a kinematic constraint
 class KinematicConstraint
@@ -144,7 +144,7 @@ public:
    *
    * @param [in] out The file descriptor for printing
    */
-  virtual void print(std::ostream& = std::cout) const
+  virtual void print(std::ostream& /*unused*/ = std::cout) const
   {
   }
 
@@ -178,7 +178,7 @@ protected:
                                 distance computed by the decide() function  */
 };
 
-MOVEIT_CLASS_FORWARD(JointConstraint);
+MOVEIT_CLASS_FORWARD(JointConstraint);  // Defines JointConstraintPtr, ConstPtr, WeakPtr... etc
 
 /**
  * \brief Class for handling single DOF joint constraints.
@@ -208,7 +208,7 @@ public:
    * @param [in] model The kinematic model used for constraint evaluation
    */
   JointConstraint(const moveit::core::RobotModelConstPtr& model)
-    : KinematicConstraint(model), joint_model_(NULL), joint_variable_index_(-1)
+    : KinematicConstraint(model), joint_model_(nullptr), joint_variable_index_(-1)
   {
     type_ = JOINT_CONSTRAINT;
   }
@@ -331,7 +331,7 @@ protected:
   double joint_position_, joint_tolerance_above_, joint_tolerance_below_; /**< \brief Position and tolerance values*/
 };
 
-MOVEIT_CLASS_FORWARD(OrientationConstraint);
+MOVEIT_CLASS_FORWARD(OrientationConstraint);  // Defines OrientationConstraintPtr, ConstPtr, WeakPtr... etc
 
 /**
  * \brief Class for constraints on the orientation of a link
@@ -355,7 +355,8 @@ public:
    *
    * @param [in] model The kinematic model used for constraint evaluation
    */
-  OrientationConstraint(const moveit::core::RobotModelConstPtr& model) : KinematicConstraint(model), link_model_(NULL)
+  OrientationConstraint(const moveit::core::RobotModelConstPtr& model)
+    : KinematicConstraint(model), link_model_(nullptr)
   {
     type_ = ORIENTATION_CONSTRAINT;
   }
@@ -434,10 +435,13 @@ public:
   /**
    * \brief The rotation target in the reference frame.
    *
-    * @return The target rotation
+   * @return The target rotation.
+   *
+   * The returned matrix is always a valid rotation matrix.
    */
   const Eigen::Matrix3d& getDesiredRotationMatrix() const
   {
+    // validity of the rotation matrix is enforced in configure()
     return desired_rotation_matrix_;
   }
 
@@ -476,17 +480,17 @@ public:
 
 protected:
   const moveit::core::LinkModel* link_model_;   /**< \brief The target link model */
-  Eigen::Matrix3d desired_rotation_matrix_;     /**< \brief The desired rotation matrix in the tf frame */
+  Eigen::Matrix3d desired_rotation_matrix_;     /**< \brief The desired rotation matrix in the tf frame. Guaranteed to
+                                                 * be valid rotation matrix. */
   Eigen::Matrix3d desired_rotation_matrix_inv_; /**< \brief The inverse of the desired rotation matrix, precomputed for
-                                                 * efficiency
-                                                   */
+                                                 * efficiency. Guaranteed to be valid rotation matrix. */
   std::string desired_rotation_frame_id_;       /**< \brief The target frame of the transform tree */
   bool mobile_frame_;                           /**< \brief Whether or not the header frame is mobile or fixed */
   double absolute_x_axis_tolerance_, absolute_y_axis_tolerance_,
       absolute_z_axis_tolerance_; /**< \brief Storage for the tolerances */
 };
 
-MOVEIT_CLASS_FORWARD(PositionConstraint);
+MOVEIT_CLASS_FORWARD(PositionConstraint);  // Defines PositionConstraintPtr, ConstPtr, WeakPtr... etc
 
 /**
  * \brief Class for constraints on the XYZ position of a link
@@ -512,7 +516,7 @@ public:
    *
    * @param [in] model The kinematic model used for constraint evaluation
    */
-  PositionConstraint(const moveit::core::RobotModelConstPtr& model) : KinematicConstraint(model), link_model_(NULL)
+  PositionConstraint(const moveit::core::RobotModelConstPtr& model) : KinematicConstraint(model), link_model_(nullptr)
   {
     type_ = POSITION_CONSTRAINT;
   }
@@ -641,13 +645,14 @@ protected:
   Eigen::Vector3d offset_;                         /**< \brief The target offset */
   bool has_offset_;                                /**< \brief Whether the offset is substantially different than 0.0 */
   std::vector<bodies::BodyPtr> constraint_region_; /**< \brief The constraint region vector */
-  EigenSTL::vector_Isometry3d constraint_region_pose_; /**< \brief The constraint region pose vector */
-  bool mobile_frame_;                                  /**< \brief Whether or not a mobile frame is employed*/
-  std::string constraint_frame_id_;                    /**< \brief The constraint frame id */
-  const moveit::core::LinkModel* link_model_;          /**< \brief The link model constraint subject */
+  /** \brief The constraint region pose vector. All isometries are guaranteed to be valid. */
+  EigenSTL::vector_Isometry3d constraint_region_pose_;
+  bool mobile_frame_;                         /**< \brief Whether or not a mobile frame is employed*/
+  std::string constraint_frame_id_;           /**< \brief The constraint frame id */
+  const moveit::core::LinkModel* link_model_; /**< \brief The link model constraint subject */
 };
 
-MOVEIT_CLASS_FORWARD(VisibilityConstraint);
+MOVEIT_CLASS_FORWARD(VisibilityConstraint);  // Defines VisibilityConstraintPtr, ConstPtr, WeakPtr... etc
 
 /**
  * \brief Class for constraints on the visibility relationship between
@@ -847,7 +852,7 @@ protected:
   double max_range_angle_;           /**< \brief Storage for the max range angle */
 };
 
-MOVEIT_CLASS_FORWARD(KinematicConstraintSet);
+MOVEIT_CLASS_FORWARD(KinematicConstraintSet);  // Defines KinematicConstraintSetPtr, ConstPtr, WeakPtr... etc
 
 /**
  * \brief A class that contains many different constraints, and can
@@ -1067,4 +1072,4 @@ protected:
                                                                                internal visibility constraints */
   moveit_msgs::Constraints all_constraints_; /**<  \brief Messages corresponding to all internal constraints */
 };
-}
+}  // namespace kinematic_constraints

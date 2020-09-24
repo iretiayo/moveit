@@ -39,6 +39,7 @@
 #include <geometric_shapes/shape_operations.h>
 #include <moveit/robot_state/conversions.h>
 #include <moveit/collision_detection_fcl/collision_env_fcl.h>
+#include <geometric_shapes/check_isometry.h>
 #include <boost/math/constants/constants.hpp>
 #include <tf2_eigen/tf2_eigen.h>
 #include <boost/bind.hpp>
@@ -106,8 +107,9 @@ bool JointConstraint::configure(const moveit_msgs::JointConstraint& jc)
       }
       else if (joint_model_->getVariableCount() > 1)
       {
-        ROS_ERROR_NAMED("kinematic_constraints", "Joint '%s' has more than one parameter to constrain. "
-                                                 "This type of constraint is not supported.",
+        ROS_ERROR_NAMED("kinematic_constraints",
+                        "Joint '%s' has more than one parameter to constrain. "
+                        "This type of constraint is not supported.",
                         jc.joint_name.c_str());
         joint_model_ = nullptr;
       }
@@ -166,16 +168,18 @@ bool JointConstraint::configure(const moveit_msgs::JointConstraint& jc)
       {
         joint_position_ = bounds.min_position_;
         joint_tolerance_above_ = std::numeric_limits<double>::epsilon();
-        ROS_WARN_NAMED("kinematic_constraints", "Joint %s is constrained to be below the minimum bounds. "
-                                                "Assuming minimum bounds instead.",
+        ROS_WARN_NAMED("kinematic_constraints",
+                       "Joint %s is constrained to be below the minimum bounds. "
+                       "Assuming minimum bounds instead.",
                        jc.joint_name.c_str());
       }
       else if (bounds.max_position_ < joint_position_ - joint_tolerance_below_)
       {
         joint_position_ = bounds.max_position_;
         joint_tolerance_below_ = std::numeric_limits<double>::epsilon();
-        ROS_WARN_NAMED("kinematic_constraints", "Joint %s is constrained to be above the maximum bounds. "
-                                                "Assuming maximum bounds instead.",
+        ROS_WARN_NAMED("kinematic_constraints",
+                       "Joint %s is constrained to be above the maximum bounds. "
+                       "Assuming maximum bounds instead.",
                        jc.joint_name.c_str());
       }
     }
@@ -230,8 +234,9 @@ ConstraintEvaluationResult JointConstraint::decide(const moveit::core::RobotStat
   bool result = dif <= (joint_tolerance_above_ + 2.0 * std::numeric_limits<double>::epsilon()) &&
                 dif >= (-joint_tolerance_below_ - 2.0 * std::numeric_limits<double>::epsilon());
   if (verbose)
-    ROS_INFO_NAMED("kinematic_constraints", "Constraint %s:: Joint name: '%s', actual value: %f, desired value: %f, "
-                                            "tolerance_above: %f, tolerance_below: %f",
+    ROS_INFO_NAMED("kinematic_constraints",
+                   "Constraint %s:: Joint name: '%s', actual value: %f, desired value: %f, "
+                   "tolerance_above: %f, tolerance_below: %f",
                    result ? "satisfied" : "violated", joint_variable_name_.c_str(), current_joint_position,
                    joint_position_, joint_tolerance_above_, joint_tolerance_below_);
   return ConstraintEvaluationResult(result, constraint_weight_ * fabs(dif));
@@ -315,17 +320,18 @@ bool PositionConstraint::configure(const moveit_msgs::PositionConstraint& pc, co
         ROS_WARN_NAMED("kinematic_constraints", "Constraint region message does not contain enough primitive poses");
         continue;
       }
-      constraint_region_.push_back(bodies::BodyPtr(bodies::createBodyFromShape(shape.get())));
       Eigen::Isometry3d t;
       tf2::fromMsg(pc.constraint_region.primitive_poses[i], t);
+      ASSERT_ISOMETRY(t)  // unsanitized input, could contain a non-isometry
       constraint_region_pose_.push_back(t);
-      if (mobile_frame_)
-        constraint_region_.back()->setPose(constraint_region_pose_.back());
-      else
-      {
+      if (!mobile_frame_)
         tf.transformPose(pc.header.frame_id, constraint_region_pose_.back(), constraint_region_pose_.back());
-        constraint_region_.back()->setPose(constraint_region_pose_.back());
-      }
+
+      const bodies::BodyPtr body(bodies::createEmptyBodyFromShapeType(shape->type));
+      body->setDimensionsDirty(shape.get());
+      body->setPoseDirty(constraint_region_pose_.back());
+      body->updateInternalData();
+      constraint_region_.push_back(body);
     }
     else
       ROS_WARN_NAMED("kinematic_constraints", "Could not construct primitive shape %zu", i);
@@ -342,17 +348,17 @@ bool PositionConstraint::configure(const moveit_msgs::PositionConstraint& pc, co
         ROS_WARN_NAMED("kinematic_constraints", "Constraint region message does not contain enough primitive poses");
         continue;
       }
-      constraint_region_.push_back(bodies::BodyPtr(bodies::createBodyFromShape(shape.get())));
       Eigen::Isometry3d t;
       tf2::fromMsg(pc.constraint_region.mesh_poses[i], t);
+      ASSERT_ISOMETRY(t)  // unsanitized input, could contain a non-isometry
       constraint_region_pose_.push_back(t);
-      if (mobile_frame_)
-        constraint_region_.back()->setPose(constraint_region_pose_.back());
-      else
-      {
+      if (!mobile_frame_)
         tf.transformPose(pc.header.frame_id, constraint_region_pose_.back(), constraint_region_pose_.back());
-        constraint_region_.back()->setPose(constraint_region_pose_.back());
-      }
+      const bodies::BodyPtr body(bodies::createEmptyBodyFromShapeType(shape->type));
+      body->setDimensionsDirty(shape.get());
+      body->setPoseDirty(constraint_region_pose_.back());
+      body->updateInternalData();
+      constraint_region_.push_back(body);
     }
     else
     {
@@ -390,8 +396,9 @@ bool PositionConstraint::equal(const KinematicConstraint& other, double margin) 
       // need to check against all other regions
       for (std::size_t j = 0; j < o.constraint_region_.size(); ++j)
       {
+        // constraint_region_pose_ contain only valid isometries, so diff is also a valid isometry
         Eigen::Isometry3d diff = constraint_region_pose_[i].inverse() * o.constraint_region_pose_[j];
-        if (diff.translation().norm() < margin && diff.rotation().isIdentity(margin) &&
+        if (diff.translation().norm() < margin && diff.linear().isIdentity(margin) &&
             constraint_region_[i]->getType() == o.constraint_region_[j]->getType() &&
             fabs(constraint_region_[i]->computeVolume() - o.constraint_region_[j]->computeVolume()) < margin)
         {
@@ -422,9 +429,10 @@ static inline ConstraintEvaluationResult finishPositionConstraintDecision(const 
   double dz = desired.z() - pt.z();
   if (verbose)
   {
-    ROS_INFO_NAMED(
-        "kinematic_constraints", "Position constraint %s on link '%s'. Desired: %f, %f, %f, current: %f, %f, %f",
-        result ? "satisfied" : "violated", name.c_str(), desired.x(), desired.y(), desired.z(), pt.x(), pt.y(), pt.z());
+    ROS_INFO_NAMED("kinematic_constraints",
+                   "Position constraint %s on link '%s'. Desired: %f, %f, %f, current: %f, %f, %f",
+                   result ? "satisfied" : "violated", name.c_str(), desired.x(), desired.y(), desired.z(), pt.x(),
+                   pt.y(), pt.z());
     ROS_INFO_NAMED("kinematic_constraints", "Differences %g %g %g", dx, dy, dz);
   }
   return ConstraintEvaluationResult(result, weight * sqrt(dx * dx + dy * dy + dz * dz));
@@ -505,8 +513,9 @@ bool OrientationConstraint::configure(const moveit_msgs::OrientationConstraint& 
   tf2::fromMsg(oc.orientation, q);
   if (fabs(q.norm() - 1.0) > 1e-3)
   {
-    ROS_WARN_NAMED("kinematic_constraints", "Orientation constraint for link '%s' is probably incorrect: %f, %f, %f, "
-                                            "%f. Assuming identity instead.",
+    ROS_WARN_NAMED("kinematic_constraints",
+                   "Orientation constraint for link '%s' is probably incorrect: %f, %f, %f, "
+                   "%f. Assuming identity instead.",
                    oc.link_name.c_str(), oc.orientation.x, oc.orientation.y, oc.orientation.z, oc.orientation.w);
     q = Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
   }
@@ -597,16 +606,18 @@ ConstraintEvaluationResult OrientationConstraint::decide(const moveit::core::Rob
   Eigen::Vector3d xyz;
   if (mobile_frame_)
   {
-    Eigen::Matrix3d tmp = state.getFrameTransform(desired_rotation_frame_id_).rotation() * desired_rotation_matrix_;
-    Eigen::Isometry3d diff(tmp.transpose() * state.getGlobalLinkTransform(link_model_).rotation());
-    xyz = diff.rotation().eulerAngles(0, 1, 2);
+    // getFrameTransform() returns a valid isometry by contract
+    Eigen::Matrix3d tmp = state.getFrameTransform(desired_rotation_frame_id_).linear() * desired_rotation_matrix_;
+    // getGlobalLinkTransform() returns a valid isometry by contract
+    Eigen::Isometry3d diff(tmp.transpose() * state.getGlobalLinkTransform(link_model_).linear());  // valid isometry
+    xyz = diff.linear().eulerAngles(0, 1, 2);
     // 0,1,2 corresponds to XYZ, the convention used in sampling constraints
   }
   else
   {
-    Eigen::Isometry3d diff(desired_rotation_matrix_inv_ * state.getGlobalLinkTransform(link_model_).rotation());
-    xyz =
-        diff.rotation().eulerAngles(0, 1, 2);  // 0,1,2 corresponds to XYZ, the convention used in sampling constraints
+    // diff is valid isometry by construction
+    Eigen::Isometry3d diff(desired_rotation_matrix_inv_ * state.getGlobalLinkTransform(link_model_).linear());
+    xyz = diff.linear().eulerAngles(0, 1, 2);  // 0,1,2 corresponds to XYZ, the convention used in sampling constraints
   }
 
   xyz(0) = std::min(fabs(xyz(0)), boost::math::constants::pi<double>() - fabs(xyz(0)));
@@ -618,7 +629,7 @@ ConstraintEvaluationResult OrientationConstraint::decide(const moveit::core::Rob
 
   if (verbose)
   {
-    Eigen::Quaterniond q_act(state.getGlobalLinkTransform(link_model_).rotation());
+    Eigen::Quaterniond q_act(state.getGlobalLinkTransform(link_model_).linear());
     Eigen::Quaterniond q_des(desired_rotation_matrix_);
     ROS_INFO_NAMED("kinematic_constraints",
                    "Orientation constraint %s for link '%s'. Quaternion desired: %f %f %f %f, quaternion "
@@ -676,8 +687,9 @@ bool VisibilityConstraint::configure(const moveit_msgs::VisibilityConstraint& vc
 
   if (vc.cone_sides < 3)
   {
-    ROS_WARN_NAMED("kinematic_constraints", "The number of sides for the visibility region must be 3 or more. "
-                                            "Assuming 3 sides instead of the specified %d",
+    ROS_WARN_NAMED("kinematic_constraints",
+                   "The number of sides for the visibility region must be 3 or more. "
+                   "Assuming 3 sides instead of the specified %d",
                    vc.cone_sides);
     cone_sides_ = 3;
   }
@@ -696,6 +708,7 @@ bool VisibilityConstraint::configure(const moveit_msgs::VisibilityConstraint& vc
   }
 
   tf2::fromMsg(vc.target_pose.pose, target_pose_);
+  ASSERT_ISOMETRY(target_pose_)  // unsanitized input, could contain a non-isometry
 
   if (tf.isFixedFrame(vc.target_pose.header.frame_id))
   {
@@ -713,6 +726,7 @@ bool VisibilityConstraint::configure(const moveit_msgs::VisibilityConstraint& vc
   }
 
   tf2::fromMsg(vc.sensor_pose.pose, sensor_pose_);
+  ASSERT_ISOMETRY(sensor_pose_)  // unsanitized input, could contain a non-isometry
 
   if (tf.isFixedFrame(vc.sensor_pose.header.frame_id))
   {
@@ -753,15 +767,17 @@ bool VisibilityConstraint::equal(const KinematicConstraint& other, double margin
   {
     if (fabs(max_view_angle_ - o.max_view_angle_) > margin || fabs(target_radius_ - o.target_radius_) > margin)
       return false;
-    Eigen::Isometry3d diff = sensor_pose_.inverse() * o.sensor_pose_;
+    // sensor_pose_ is valid isometry, checked in configure()
+    Eigen::Isometry3d diff = sensor_pose_.inverse() * o.sensor_pose_;  // valid isometry
     if (diff.translation().norm() > margin)
       return false;
-    if (!diff.rotation().isIdentity(margin))
+    if (!diff.linear().isIdentity(margin))
       return false;
-    diff = target_pose_.inverse() * o.target_pose_;
+    // target_pose_ is valid isometry, checked in configure()
+    diff = target_pose_.inverse() * o.target_pose_;  // valid isometry
     if (diff.translation().norm() > margin)
       return false;
-    if (!diff.rotation().isIdentity(margin))
+    if (!diff.linear().isIdentity(margin))
       return false;
     return true;
   }
@@ -876,8 +892,11 @@ void VisibilityConstraint::getMarkers(const moveit::core::RobotState& state,
 
   markers.markers.push_back(mk);
 
+  // getFrameTransform() returns a valid isometry by contract
+  // sensor_pose_ is valid isometry (checked in configure())
   const Eigen::Isometry3d& sp =
       mobile_sensor_frame_ ? state.getFrameTransform(sensor_frame_id_) * sensor_pose_ : sensor_pose_;
+  // target_pose_ is valid isometry (checked in configure())
   const Eigen::Isometry3d& tp =
       mobile_target_frame_ ? state.getFrameTransform(target_frame_id_) * target_pose_ : target_pose_;
 
@@ -895,7 +914,7 @@ void VisibilityConstraint::getMarkers(const moveit::core::RobotState& state,
   mka.scale.y = .15;
   mka.scale.z = 0.0;
   mka.points.resize(2);
-  Eigen::Vector3d d = tp.translation() + tp.rotation().col(2) * 0.5;
+  Eigen::Vector3d d = tp.translation() + tp.linear().col(2) * 0.5;
   mka.points[0].x = tp.translation().x();
   mka.points[0].y = tp.translation().y();
   mka.points[0].z = tp.translation().z();
@@ -908,7 +927,7 @@ void VisibilityConstraint::getMarkers(const moveit::core::RobotState& state,
   mka.color.b = 1.0;
   mka.color.r = 0.0;
 
-  d = sp.translation() + sp.rotation().col(2 - sensor_view_direction_) * 0.5;
+  d = sp.translation() + sp.linear().col(2 - sensor_view_direction_) * 0.5;
   mka.points[0].x = sp.translation().x();
   mka.points[0].y = sp.translation().y();
   mka.points[0].z = sp.translation().z();
@@ -926,17 +945,20 @@ ConstraintEvaluationResult VisibilityConstraint::decide(const moveit::core::Robo
 
   if (max_view_angle_ > 0.0 || max_range_angle_ > 0.0)
   {
+    // getFrameTransform() returns a valid isometry by contract
+    // sensor_pose_ is valid isometry (checked in configure())
     const Eigen::Isometry3d& sp =
         mobile_sensor_frame_ ? state.getFrameTransform(sensor_frame_id_) * sensor_pose_ : sensor_pose_;
+    // target_pose_ is valid isometry (checked in configure())
     const Eigen::Isometry3d& tp =
         mobile_target_frame_ ? state.getFrameTransform(target_frame_id_) * target_pose_ : target_pose_;
 
     // necessary to do subtraction as SENSOR_Z is 0 and SENSOR_X is 2
-    const Eigen::Vector3d& normal2 = sp.rotation().col(2 - sensor_view_direction_);
+    const Eigen::Vector3d& normal2 = sp.linear().col(2 - sensor_view_direction_);
 
     if (max_view_angle_ > 0.0)
     {
-      const Eigen::Vector3d& normal1 = tp.rotation().col(2) * -1.0;  // along Z axis and inverted
+      const Eigen::Vector3d& normal1 = tp.linear().col(2) * -1.0;  // along Z axis and inverted
       double dp = normal2.dot(normal1);
       double ang = acos(dp);
       if (dp < 0.0)
@@ -949,8 +971,9 @@ ConstraintEvaluationResult VisibilityConstraint::decide(const moveit::core::Robo
       if (max_view_angle_ < ang)
       {
         if (verbose)
-          ROS_INFO_NAMED("kinematic_constraints", "Visibility constraint is violated because the view angle is %lf "
-                                                  "(above the maximum allowed of %lf)",
+          ROS_INFO_NAMED("kinematic_constraints",
+                         "Visibility constraint is violated because the view angle is %lf "
+                         "(above the maximum allowed of %lf)",
                          ang, max_view_angle_);
         return ConstraintEvaluationResult(false, 0.0);
       }
@@ -971,8 +994,9 @@ ConstraintEvaluationResult VisibilityConstraint::decide(const moveit::core::Robo
       if (max_range_angle_ < ang)
       {
         if (verbose)
-          ROS_INFO_NAMED("kinematic_constraints", "Visibility constraint is violated because the range angle is %lf "
-                                                  "(above the maximum allowed of %lf)",
+          ROS_INFO_NAMED("kinematic_constraints",
+                         "Visibility constraint is violated because the range angle is %lf "
+                         "(above the maximum allowed of %lf)",
                          ang, max_range_angle_);
         return ConstraintEvaluationResult(false, 0.0);
       }

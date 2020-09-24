@@ -75,7 +75,7 @@ class RosTopicProperty;
 class EditableEnumProperty;
 class ColorProperty;
 class MovableText;
-}
+}  // namespace rviz
 
 namespace moveit_rviz_plugin
 {
@@ -134,6 +134,7 @@ public:
   void setQueryStartState(const moveit::core::RobotState& start);
   void setQueryGoalState(const moveit::core::RobotState& goal);
 
+  void updateQueryStates(const moveit::core::RobotState& current_state);
   void updateQueryStartState();
   void updateQueryGoalState();
   void rememberPreviousStartState();

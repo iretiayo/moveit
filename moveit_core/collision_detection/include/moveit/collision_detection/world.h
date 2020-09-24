@@ -41,7 +41,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <memory>
 #include <boost/function.hpp>
 #include <Eigen/Geometry>
 #include <eigen_stl_containers/eigen_stl_vector_container.h>
@@ -49,12 +48,12 @@
 
 namespace shapes
 {
-MOVEIT_CLASS_FORWARD(Shape);
+MOVEIT_CLASS_FORWARD(Shape);  // Defines ShapePtr, ConstPtr, WeakPtr... etc
 }
 
 namespace collision_detection
 {
-MOVEIT_CLASS_FORWARD(World);
+MOVEIT_CLASS_FORWARD(World);  // Defines WorldPtr, ConstPtr, WeakPtr... etc
 
 /** \brief Maintain a representation of the environment */
 class World
@@ -151,12 +150,14 @@ public:
 
   /** \brief Get the transform to an object or subframe with given name.
    * If name does not exist, a std::runtime_error is thrown.
-   * A subframe name needs to be prefixed with the object's name separated by a slash. */
+   * A subframe name needs to be prefixed with the object's name separated by a slash.
+   * The returned transform is guaranteed to be a valid isometry. */
   const Eigen::Isometry3d& getTransform(const std::string& name) const;
 
   /** \brief Get the transform to an object or subframe with given name.
    * If name does not exist, returns an identity transform and sets frame_found to false.
-   * A subframe name needs to be prefixed with the object's name separated by a slash. */
+   * A subframe name needs to be prefixed with the object's name separated by a slash.
+   * The returned transform is guaranteed to be a valid isometry. */
   const Eigen::Isometry3d& getTransform(const std::string& name, bool& frame_found) const;
 
   /** \brief Add shapes to an object in the map.
@@ -241,7 +242,7 @@ public:
   class ObserverHandle
   {
   public:
-    ObserverHandle() : observer_(NULL)
+    ObserverHandle() : observer_(nullptr)
     {
     }
 
@@ -270,7 +271,7 @@ public:
 
 private:
   /** notify all observers of a change */
-  void notify(const ObjectConstPtr&, Action);
+  void notify(const ObjectConstPtr& /*obj*/, Action /*action*/);
 
   /** send notification of change to all objects. */
   void notifyAll(Action action);
@@ -300,4 +301,4 @@ private:
   /// All registered observers of this world representation
   std::vector<Observer*> observers_;
 };
-}
+}  // namespace collision_detection

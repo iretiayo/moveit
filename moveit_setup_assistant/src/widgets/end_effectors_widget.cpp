@@ -54,12 +54,12 @@ EndEffectorsWidget::EndEffectorsWidget(QWidget* parent, const MoveItConfigDataPt
 
   // Top Header Area ------------------------------------------------
 
-  HeaderWidget* header =
-      new HeaderWidget("Define End Effectors", "Setup your robot's end effectors. These are planning groups "
-                                               "corresponding to grippers or tools, attached to a parent "
-                                               "planning group (an arm). The specified parent link is used as the "
-                                               "reference frame for IK attempts.",
-                       this);
+  HeaderWidget* header = new HeaderWidget("Define End Effectors",
+                                          "Setup your robot's end effectors. These are planning groups "
+                                          "corresponding to grippers or tools, attached to a parent "
+                                          "planning group (an arm). The specified parent link is used as the "
+                                          "reference frame for IK attempts.",
+                                          this);
   layout->addWidget(header);
 
   // Create contents screens ---------------------------------------
@@ -608,17 +608,16 @@ void EndEffectorsWidget::loadDataTable()
 
   // Loop through every end effector
   int row = 0;
-  for (std::vector<srdf::Model::EndEffector>::const_iterator data_it = config_data_->srdf_->end_effectors_.begin();
-       data_it != config_data_->srdf_->end_effectors_.end(); ++data_it)
+  for (const auto& eef : config_data_->srdf_->end_effectors_)
   {
     // Create row elements
-    QTableWidgetItem* data_name = new QTableWidgetItem(data_it->name_.c_str());
+    QTableWidgetItem* data_name = new QTableWidgetItem(eef.name_.c_str());
     data_name->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-    QTableWidgetItem* group_name = new QTableWidgetItem(data_it->component_group_.c_str());
+    QTableWidgetItem* group_name = new QTableWidgetItem(eef.component_group_.c_str());
     group_name->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-    QTableWidgetItem* parent_name = new QTableWidgetItem(data_it->parent_link_.c_str());
+    QTableWidgetItem* parent_name = new QTableWidgetItem(eef.parent_link_.c_str());
     group_name->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-    QTableWidgetItem* parent_group_name = new QTableWidgetItem(data_it->parent_group_.c_str());
+    QTableWidgetItem* parent_group_name = new QTableWidgetItem(eef.parent_group_.c_str());
     parent_group_name->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 
     // Add to table

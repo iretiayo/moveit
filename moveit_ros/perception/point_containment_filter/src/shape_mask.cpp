@@ -69,11 +69,13 @@ point_containment_filter::ShapeHandle point_containment_filter::ShapeMask::addSh
 {
   boost::mutex::scoped_lock _(shapes_lock_);
   SeeShape ss;
-  ss.body = bodies::createBodyFromShape(shape.get());
+  ss.body = bodies::createEmptyBodyFromShapeType(shape->type);
   if (ss.body)
   {
-    ss.body->setScale(scale);
-    ss.body->setPadding(padding);
+    ss.body->setDimensionsDirty(shape.get());
+    ss.body->setScaleDirty(scale);
+    ss.body->setPaddingDirty(padding);
+    ss.body->updateInternalData();
     ss.volume = ss.body->computeVolume();
     ss.handle = next_handle_;
     std::pair<std::set<SeeShape, SortBodies>::iterator, bool> insert_op = bodies_.insert(ss);
@@ -133,8 +135,7 @@ void point_containment_filter::ShapeMask::maskContainment(const sensor_msgs::Poi
       if (!transform_callback_(it->handle, tmp))
       {
         if (!it->body)
-          ROS_ERROR_STREAM_NAMED(LOGNAME, "Missing transform for shape with handle " << it->handle
-                                                                                     << " without a body");
+          ROS_ERROR_STREAM_NAMED(LOGNAME, "Missing transform for shape with handle " << it->handle << " without a body");
         else
           ROS_ERROR_STREAM_NAMED(LOGNAME, "Missing transform for shape " << it->body->getType() << " with handle "
                                                                          << it->handle);
