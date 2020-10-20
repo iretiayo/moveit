@@ -342,6 +342,14 @@ public:
     return output;
   }
 
+  py_bindings_tools::ByteString getCurrentStatePython()
+  {
+    moveit::core::RobotStatePtr current_state = getCurrentState();
+    moveit_msgs::RobotState state_message;
+    moveit::core::robotStateToRobotStateMsg(*current_state, state_message);
+    return py_bindings_tools::serializeMsg(state_message);
+  }
+
   void setStartStatePython(const py_bindings_tools::ByteString& msg_str)
   {
     moveit_msgs::RobotState msg;
@@ -458,10 +466,12 @@ public:
 
   bp::tuple planPython()
   {
-    GILReleaser gr;
     MoveGroupInterface::Plan plan;
-    moveit_msgs::MoveItErrorCodes res = MoveGroupInterface::plan(plan);
-    gr.reacquire();
+    moveit_msgs::MoveItErrorCodes res;
+    {
+      GILReleaser gr;
+      res = MoveGroupInterface::plan(plan);
+    }
     return bp::make_tuple(py_bindings_tools::serializeMsg(res), py_bindings_tools::serializeMsg(plan.trajectory_),
                           plan.planning_time_);
   }
@@ -488,10 +498,11 @@ public:
     std::vector<geometry_msgs::Pose> poses;
     convertListToArrayOfPoses(waypoints, poses);
     moveit_msgs::RobotTrajectory trajectory;
-    GILReleaser gr;
-    double fraction =
-        computeCartesianPath(poses, eef_step, jump_threshold, trajectory, path_constraints, avoid_collisions);
-    gr.reacquire();
+    double fraction;
+    {
+      GILReleaser gr;
+      fraction = computeCartesianPath(poses, eef_step, jump_threshold, trajectory, path_constraints, avoid_collisions);
+    }
     return bp::make_tuple(py_bindings_tools::serializeMsg(trajectory), fraction);
   }
 
@@ -556,36 +567,39 @@ public:
       // Convert trajectory message to object
       moveit_msgs::RobotTrajectory traj_msg;
       py_bindings_tools::deserializeMsg(traj_str, traj_msg);
-      GILReleaser gr;
-      robot_trajectory::RobotTrajectory traj_obj(getRobotModel(), getName());
-      traj_obj.setRobotTrajectoryMsg(ref_state_obj, traj_msg);
+      bool algorithm_found = true;
+      {
+        GILReleaser gr;
+        robot_trajectory::RobotTrajectory traj_obj(getRobotModel(), getName());
+        traj_obj.setRobotTrajectoryMsg(ref_state_obj, traj_msg);
 
-      // Do the actual retiming
-      if (algorithm == "iterative_time_parameterization")
-      {
-        trajectory_processing::IterativeParabolicTimeParameterization time_param;
-        time_param.computeTimeStamps(traj_obj, velocity_scaling_factor, acceleration_scaling_factor);
-      }
-      else if (algorithm == "iterative_spline_parameterization")
-      {
-        trajectory_processing::IterativeSplineParameterization time_param;
-        time_param.computeTimeStamps(traj_obj, velocity_scaling_factor, acceleration_scaling_factor);
-      }
-      else if (algorithm == "time_optimal_trajectory_generation")
-      {
-        trajectory_processing::TimeOptimalTrajectoryGeneration time_param;
-        time_param.computeTimeStamps(traj_obj, velocity_scaling_factor, acceleration_scaling_factor);
-      }
-      else
-      {
-        ROS_ERROR_STREAM_NAMED("move_group_py", "Unknown time parameterization algorithm: " << algorithm);
-        gr.reacquire();
-        return py_bindings_tools::serializeMsg(moveit_msgs::RobotTrajectory());
-      }
+        // Do the actual retiming
+        if (algorithm == "iterative_time_parameterization")
+        {
+          trajectory_processing::IterativeParabolicTimeParameterization time_param;
+          time_param.computeTimeStamps(traj_obj, velocity_scaling_factor, acceleration_scaling_factor);
+        }
+        else if (algorithm == "iterative_spline_parameterization")
+        {
+          trajectory_processing::IterativeSplineParameterization time_param;
+          time_param.computeTimeStamps(traj_obj, velocity_scaling_factor, acceleration_scaling_factor);
+        }
+        else if (algorithm == "time_optimal_trajectory_generation")
+        {
+          trajectory_processing::TimeOptimalTrajectoryGeneration time_param;
+          time_param.computeTimeStamps(traj_obj, velocity_scaling_factor, acceleration_scaling_factor);
+        }
+        else
+        {
+          ROS_ERROR_STREAM_NAMED("move_group_py", "Unknown time parameterization algorithm: " << algorithm);
+          algorithm_found = false;
+          traj_msg = moveit_msgs::RobotTrajectory();
+        }
 
-      // Convert the retimed trajectory back into a message
-      traj_obj.getRobotTrajectoryMsg(traj_msg);
-      gr.reacquire();
+        if (algorithm_found)
+          // Convert the retimed trajectory back into a message
+          traj_obj.getRobotTrajectoryMsg(traj_msg);
+      }
       return py_bindings_tools::serializeMsg(traj_msg);
     }
     else
@@ -611,6 +625,24 @@ public:
     auto group = state.getJointModelGroup(getName());
     state.setJointGroupPositions(group, v);
     return state.getJacobian(group, Eigen::Map<Eigen::Vector3d>(&ref[0]));
+  }
+
+  py_bindings_tools::ByteString enforceBoundsPython(const py_bindings_tools::ByteString& msg_str)
+  {
+    moveit_msgs::RobotState state_msg;
+    py_bindings_tools::deserializeMsg(msg_str, state_msg);
+    moveit::core::RobotState state(getRobotModel());
+    if (moveit::core::robotStateMsgToRobotState(state_msg, state, true))
+    {
+      state.enforceBounds();
+      moveit::core::robotStateToRobotStateMsg(state, state_msg);
+      return py_bindings_tools::serializeMsg(state_msg);
+    }
+    else
+    {
+      ROS_ERROR("Unable to convert RobotState message to RobotState instance.");
+      return py_bindings_tools::ByteString("");
+    }
   }
 };
 
@@ -755,8 +787,10 @@ static void wrap_move_group_interface()
   move_group_interface_class.def("get_named_targets", &MoveGroupInterfaceWrapper::getNamedTargetsPython);
   move_group_interface_class.def("get_named_target_values", &MoveGroupInterfaceWrapper::getNamedTargetValuesPython);
   move_group_interface_class.def("get_current_state_bounded", &MoveGroupInterfaceWrapper::getCurrentStateBoundedPython);
+  move_group_interface_class.def("get_current_state", &MoveGroupInterfaceWrapper::getCurrentStatePython);
   move_group_interface_class.def("get_jacobian_matrix", &MoveGroupInterfaceWrapper::getJacobianMatrixPython,
                                  getJacobianMatrixOverloads());
+  move_group_interface_class.def("enforce_bounds", &MoveGroupInterfaceWrapper::enforceBoundsPython);
   move_group_interface_class.def("clear_reference_trajectories", &MoveGroupInterfaceWrapper::clearReferenceTrajectories);
   move_group_interface_class.def("set_reference_trajectories_from_msg",
                                  &MoveGroupInterfaceWrapper::setReferenceTrajectoriesFromMsg);

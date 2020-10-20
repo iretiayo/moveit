@@ -59,6 +59,13 @@ class ServoFixture : public ::testing::Test
 public:
   void SetUp() override
   {
+    // Wait for several key topics / parameters
+    ros::topic::waitForMessage<sensor_msgs::JointState>("/joint_states");
+    while (!nh_.hasParam("/robot_description") && ros::ok())
+    {
+      ros::Duration(0.1).sleep();
+    }
+
     // Load the planning scene monitor
     planning_scene_monitor_ = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>("robot_description");
     planning_scene_monitor_->startSceneMonitor();
@@ -111,7 +118,7 @@ TEST_F(ServoFixture, SendTwistStampedTest)
   // count trajectory messages sent by servo
   size_t received_count = 0;
   boost::function<void(const trajectory_msgs::JointTrajectoryConstPtr&)> traj_callback =
-      [&received_count](const trajectory_msgs::JointTrajectoryConstPtr& msg) { ++received_count; };
+      [&received_count](const trajectory_msgs::JointTrajectoryConstPtr& /*msg*/) { ++received_count; };
   auto traj_sub = nh_.subscribe(parameters.command_out_topic, 1, traj_callback);
 
   // Create publisher to send servo commands
@@ -152,7 +159,7 @@ TEST_F(ServoFixture, SendJointServoTest)
   // count trajectory messages sent by servo
   size_t received_count = 0;
   boost::function<void(const trajectory_msgs::JointTrajectoryConstPtr&)> traj_callback =
-      [&received_count](const trajectory_msgs::JointTrajectoryConstPtr& msg) { ++received_count; };
+      [&received_count](const trajectory_msgs::JointTrajectoryConstPtr& /*msg*/) { ++received_count; };
   auto traj_sub = nh_.subscribe(parameters.command_out_topic, 1, traj_callback);
 
   // Create publisher to send servo commands
