@@ -71,6 +71,8 @@
 #include "ompl/base/objectives/StateCostIntegralObjective.h"
 #include "ompl/base/objectives/MaximizeMinClearanceObjective.h"
 #include <ompl/geometric/planners/prm/LazyPRM.h>
+#include <ompl/geometric/planners/prm/PRM.h>
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
 
 namespace ompl_interface
 {
@@ -652,6 +654,53 @@ void ompl_interface::ModelBasedPlanningContext::stopSampling()
     static_cast<GoalSampleableRegionMux*>(ompl_simple_setup_->getGoal().get())->stopSampling();
 }
 
+void ompl_interface::ModelBasedPlanningContext::initializeWithSeedTrajectory()
+{
+  if (!(request_.reference_trajectories.empty() || request_.reference_trajectories[0].joint_trajectory.empty()))
+  {
+    const ob::PlannerPtr planner = ompl_simple_setup_->getPlanner();
+    std::string planner_name = "";
+    if (planner)
+      planner_name = planner->getName();
+
+    if ((planner_name.find("[LazyPRM]") != std::string::npos) ||
+        (planner_name.find("[PRM]") != std::string::npos) ||
+        (planner_name.find("[RRTConnect]") != std::string::npos))
+    {
+      std::cout << "planner_name: "<< planner_name << std::endl;
+      ROS_DEBUG_NAMED(LOGNAME, "planner_name: %s ", planner_name.c_str());
+
+      trajectory_msgs::JointTrajectory& trajectory = request_.reference_trajectories[0].joint_trajectory[0];
+      ROS_DEBUG_NAMED(LOGNAME, "reference_trajectories detected with  %d  waypoints", trajectory.points.size());
+
+      std::size_t state_count = trajectory.points.size();
+      for (std::size_t i = 0; i < state_count; ++i)
+      {
+        moveit::core::RobotStatePtr st(new moveit::core::RobotState(getCompleteInitialRobotState()));
+        st->setVariablePositions(trajectory.joint_names, trajectory.points[i].positions);
+
+        ompl::base::ScopedState<> tmp_robot_state(spec_.state_space_);
+        spec_.state_space_->copyToOMPLState(tmp_robot_state.get(), getCompleteInitialRobotState());
+
+        if (planner_name.find("[PRM]") != std::string::npos)
+        {
+          static_cast<ompl::geometric::PRM*>(planner.get())->addMilestoneNearestNeighbor(ompl_simple_setup_->getSpaceInformation()->cloneState(tmp_robot_state.get()));
+
+          // // TODO: visualize roadmap or save roadmap
+          // ompl::geometric::PRM* plannerTmp = static_cast<ompl::geometric::PRM*>(planner.get());
+          // std::cout << "plannerTmp->milestoneCount(): " << plannerTmp->milestoneCount() << std::endl;
+          // std::cout << "plannerTmp->edgeCount(): " << plannerTmp->edgeCount() << std::endl;
+        }
+
+        if (planner_name.find("[RRTConnect]") != std::string::npos)
+        {
+          static_cast<ompl::geometric::RRTConnect*>(planner.get())->growTreeStart(ompl_simple_setup_->getSpaceInformation()->cloneState(tmp_robot_state.get()));
+        }
+      }
+    }
+  }
+}
+
 void ompl_interface::ModelBasedPlanningContext::preSolve()
 {
   // clear previously computed solutions
@@ -659,6 +708,7 @@ void ompl_interface::ModelBasedPlanningContext::preSolve()
   const ob::PlannerPtr planner = ompl_simple_setup_->getPlanner();
   if (planner && !multi_query_planning_enabled_)
     planner->clear();
+  initializeWithSeedTrajectory();
   startSampling();
   ompl_simple_setup_->getSpaceInformation()->getMotionValidator()->resetMotionCounter();
 }
