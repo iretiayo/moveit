@@ -680,7 +680,7 @@ void ompl_interface::ModelBasedPlanningContext::initializeWithSeedTrajectory()
         st->setVariablePositions(trajectory.joint_names, trajectory.points[i].positions);
 
         ompl::base::ScopedState<> tmp_robot_state(spec_.state_space_);
-        spec_.state_space_->copyToOMPLState(tmp_robot_state.get(), getCompleteInitialRobotState());
+        spec_.state_space_->copyToOMPLState(tmp_robot_state.get(), *st);
 
         if (planner_name.find("[PRM]") != std::string::npos)
         {
